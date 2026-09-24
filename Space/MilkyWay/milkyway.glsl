@@ -16,6 +16,7 @@ uniform float uMwYaw;
 uniform float uMwCoreAngle;
 uniform float uMwDistance;
 uniform float uMwWidth;
+uniform float uMwFalloff;
 uniform float uMwSpan;
 uniform float uMwTaper;
 uniform float uMwNoiseScale;
@@ -208,7 +209,7 @@ vec3 milkywaySky(vec3 dir, float pxPerDir, out vec3 transmittance) {
 
 	// ---- 2. the bright turbulent band ----
 	float wBright = uMwWidth * mix(1.0 - uMwTaper, 1.0, thick);
-	float band = exp(-(b * b) / (wBright * wBright)) * present;
+	float band = exp(-pow(abs(b) / wBright, uMwFalloff)) * present;
 	float bright = band * (0.20 + 1.60 * n);
 	float grain = smoothstep(0.60, 0.95, mwFbm(q * 3.0 + 9.0, 3));
 	bright += band * grain * 1.5;           // brighter star-cloud knots
@@ -220,7 +221,7 @@ vec3 milkywaySky(vec3 dir, float pxPerDir, out vec3 transmittance) {
 
 	// ---- 1. the dark turbulent band, IN FRONT ----
 	float wDark = uMwDustWidth * mix(1.0 - uMwTaper, 1.0, thick);
-	float dark = exp(-pow((b - uMwDustOffset) / wDark, 2.0)) * present;
+	float dark = exp(-pow(abs(b - uMwDustOffset) / wDark, uMwFalloff)) * present;
 	dark *= 0.35 + 1.20 * smoothstep(0.25, 0.70, mwFbm(q * 1.4 + 21.0, 4));
 
 	vec3 dustAbs = vec3(0.70, 0.82, 1.0);

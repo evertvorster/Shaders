@@ -56,7 +56,7 @@ const float uFadeStars  = 1.00;  // [0, 1]   weight of the local starfield layer
 const float uFadeMilkyway = 1.00;  // [0, 1]   weight of the Milky Way layer
 
 // starfield knobs (Space/Starfield)
-const float uStarDensity      = 60.0;  // [5, 400] field density: star count scales with its SQUARE
+const float uStarDensity      = 41.0;  // [5, 400] field density: star count scales with its SQUARE
 const float uStarCluster      = 0.00;  // [0, 1]   clumping; 0 = perfectly uniform field
 const float uStarClusterScale = 4.00;  // [0.5, 20] clump size: lower = bigger clumps
 const float uStarBright       = 1.00;  // [0, 4]   exposure
@@ -77,18 +77,19 @@ const float uNebSteps      = 16.0;  // [6, 64]    march steps: quality vs speed
 // Milky Way knobs (Space/MilkyWay)
 const float uMwPitch      = 0.00;  // [0, 3.14]   tilt of the galactic plane
 const float uMwYaw        = 0.00;  // [0, 6.28]   yaw of the plane
-const float uMwCoreAngle  = 0.00;  // [0, 6.28]   where the core sits along the band
-const float uMwDistance   = 1.00;  // [0.25, 4]   scale every element: further / nearer the centre
-const float uMwWidth      = 0.10;  // [0.02, 0.6] bright band thickness (at the centre)
-const float uMwSpan       = 70.0;  // [15, 180]   half-width of the arc, in degrees
-const float uMwTaper      = 0.60;  // [0, 1]      how much thinner the bands get at the sides
-const float uMwNoiseScale = 2.50;  // [0.5, 40]   size of the turbulence
-const float uMwBright     = 1.00;  // [0, 4]      bright band brightness
-const float uMwDust       = 1.20;  // [0, 4]      dark band extinction
-const float uMwDustWidth  = 0.055; // [0.01, 0.3] dark band thickness
+const float uMwCoreAngle  = 0.03;  // [0, 6.28]   where the core sits along the band
+const float uMwDistance   = 0.90;  // [0.25, 4]   scale every element: further / nearer the centre
+const float uMwWidth      = 0.10;  // [0.02, 0.6] bright band width
+const float uMwFalloff    = 2.00;  // [0.5, 8]    cross-band falloff: 2 = gaussian, higher = flatter then sharper
+const float uMwSpan       = 118.0; // [15, 180]   half-width of the arc, in degrees
+const float uMwTaper      = 0.20;  // [0, 1]      how much thinner the bands get at the sides
+const float uMwNoiseScale = 15.9;  // [0.5, 60]   size of the turbulence
+const float uMwBright     = 0.45;  // [0, 4]      bright band brightness
+const float uMwDust       = 4.00;  // [0, 12]     dark band extinction
+const float uMwDustWidth  = 0.10;  // [0.01, 0.4] dark band width
 const float uMwDustOffset = 0.02;  // [-0.15, 0.15] dark band offset from the midplane
-const float uMwCore       = 1.50;  // [0, 4]      core brightness
-const float uMwCoreSize   = 0.22;  // [0.05, 0.8] core angular size
+const float uMwCore       = 2.78;  // [0, 4]      core brightness
+const float uMwCoreSize   = 0.15;  // [0.05, 0.8] core angular size
 
 // ===== SHARED MATHS =============================================================
 // The layers themselves. Each include brings its constants, maths and contract; the

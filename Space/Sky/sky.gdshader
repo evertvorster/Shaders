@@ -9,7 +9,7 @@ render_mode cull_front, unshaded, depth_draw_never, depth_test_disabled;
 uniform float uFadeNebula : hint_range(0, 1, 0.01) = 0.00;  // weight of the local nebula layer (0 = OFF)
 uniform float uFadeStars : hint_range(0, 1, 0.01) = 1.00;  // weight of the local starfield layer
 uniform float uFadeMilkyway : hint_range(0, 1, 0.01) = 1.00;  // weight of the Milky Way layer
-uniform float uStarDensity : hint_range(5, 400, 1) = 60.0;  // field density: star count scales with its SQUARE
+uniform float uStarDensity : hint_range(5, 400, 1) = 41.0;  // field density: star count scales with its SQUARE
 uniform float uStarCluster : hint_range(0, 1, 0.01) = 0.00;  // clumping; 0 = perfectly uniform field
 uniform float uStarClusterScale : hint_range(0.5, 20, 0.1) = 4.00;  // clump size: lower = bigger clumps
 uniform float uStarBright : hint_range(0, 4, 0.01) = 1.00;  // exposure
@@ -26,18 +26,19 @@ uniform float uNebNoiseScale : hint_range(0.05, 4, 0.01) = 1.00;  // size of the
 uniform float uNebSteps : hint_range(6, 64, 0.1) = 16.0;  // march steps: quality vs speed
 uniform float uMwPitch : hint_range(0, 3.14, 0.01) = 0.00;  // tilt of the galactic plane
 uniform float uMwYaw : hint_range(0, 6.28, 0.01) = 0.00;  // yaw of the plane
-uniform float uMwCoreAngle : hint_range(0, 6.28, 0.01) = 0.00;  // where the core sits along the band
-uniform float uMwDistance : hint_range(0.25, 4, 0.01) = 1.00;  // scale every element: further / nearer the centre
-uniform float uMwWidth : hint_range(0.02, 0.6, 0.001) = 0.10;  // bright band thickness (at the centre)
-uniform float uMwSpan : hint_range(15, 180, 1) = 70.0;  // half-width of the arc, in degrees
-uniform float uMwTaper : hint_range(0, 1, 0.01) = 0.60;  // how much thinner the bands get at the sides
-uniform float uMwNoiseScale : hint_range(0.5, 40, 0.1) = 2.50;  // size of the turbulence
-uniform float uMwBright : hint_range(0, 4, 0.01) = 1.00;  // bright band brightness
-uniform float uMwDust : hint_range(0, 4, 0.01) = 1.20;  // dark band extinction
-uniform float uMwDustWidth : hint_range(0.01, 0.3, 0.001) = 0.055;  // dark band thickness
+uniform float uMwCoreAngle : hint_range(0, 6.28, 0.01) = 0.03;  // where the core sits along the band
+uniform float uMwDistance : hint_range(0.25, 4, 0.01) = 0.90;  // scale every element: further / nearer the centre
+uniform float uMwWidth : hint_range(0.02, 0.6, 0.001) = 0.10;  // bright band width
+uniform float uMwFalloff : hint_range(0.5, 8, 0.01) = 2.00;  // cross-band falloff: 2 = gaussian, higher = flatter then sharper
+uniform float uMwSpan : hint_range(15, 180, 1) = 118.0;  // half-width of the arc, in degrees
+uniform float uMwTaper : hint_range(0, 1, 0.01) = 0.20;  // how much thinner the bands get at the sides
+uniform float uMwNoiseScale : hint_range(0.5, 60, 0.1) = 15.9;  // size of the turbulence
+uniform float uMwBright : hint_range(0, 4, 0.01) = 0.45;  // bright band brightness
+uniform float uMwDust : hint_range(0, 12, 0.1) = 4.00;  // dark band extinction
+uniform float uMwDustWidth : hint_range(0.01, 0.4, 0.001) = 0.10;  // dark band width
 uniform float uMwDustOffset : hint_range(-0.15, 0.15, 0.001) = 0.02;  // dark band offset from the midplane
-uniform float uMwCore : hint_range(0, 4, 0.01) = 1.50;  // core brightness
-uniform float uMwCoreSize : hint_range(0.05, 0.8, 0.001) = 0.22;  // core angular size
+uniform float uMwCore : hint_range(0, 4, 0.01) = 2.78;  // core brightness
+uniform float uMwCoreSize : hint_range(0.05, 0.8, 0.001) = 0.15;  // core angular size
 
 uniform vec3  uCamPos = vec3(0.0, 0.0, 0.0);
 uniform float uPxPerDir : hint_range(0.00005, 0.02, 0.00005) = 0.0013;
@@ -709,7 +710,7 @@ vec3 milkywaySky(vec3 dir, float pxPerDir, out vec3 transmittance) {
 
 	// ---- 2. the bright turbulent band ----
 	float wBright = uMwWidth * mix(1.0 - uMwTaper, 1.0, thick);
-	float band = exp(-(b * b) / (wBright * wBright)) * present;
+	float band = exp(-pow(abs(b) / wBright, uMwFalloff)) * present;
 	float bright = band * (0.20 + 1.60 * n);
 	float grain = smoothstep(0.60, 0.95, mwFbm(q * 3.0 + 9.0, 3));
 	bright += band * grain * 1.5;           // brighter star-cloud knots
@@ -721,7 +722,7 @@ vec3 milkywaySky(vec3 dir, float pxPerDir, out vec3 transmittance) {
 
 	// ---- 1. the dark turbulent band, IN FRONT ----
 	float wDark = uMwDustWidth * mix(1.0 - uMwTaper, 1.0, thick);
-	float dark = exp(-pow((b - uMwDustOffset) / wDark, 2.0)) * present;
+	float dark = exp(-pow(abs(b - uMwDustOffset) / wDark, uMwFalloff)) * present;
 	dark *= 0.35 + 1.20 * smoothstep(0.25, 0.70, mwFbm(q * 1.4 + 21.0, 4));
 
 	vec3 dustAbs = vec3(0.70, 0.82, 1.0);
