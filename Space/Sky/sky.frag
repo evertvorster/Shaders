@@ -56,14 +56,14 @@ const float uFadeStars  = 1.00;  // [0, 1]   weight of the local starfield layer
 const float uFadeMilkyway = 1.00;  // [0, 1]   weight of the Milky Way layer
 
 // starfield knobs (Space/Starfield)
-const float uStarSize         = 1.00;  // [0.1, 5]   scales EVERY star
-const float uStarFieldSize    = 0.80;  // [0.05, 3]  scales the smallest (faintest) stars
-const float uStarDensity      = 41.0;  // [5, 400] field density: star count scales with its SQUARE
-const float uStarCluster      = 0.00;  // [0, 1]   clumping; 0 = perfectly uniform field
-const float uStarClusterScale = 4.00;  // [0.5, 20] clump size: lower = bigger clumps
-const float uStarBright       = 1.00;  // [0, 4]   exposure
-const float uStarGlow         = 1.00;  // [0, 3]   glare around the brightest stars
-const float uStarCount        = 0.60;  // [0.05, 1] cell occupancy
+const float uStarSize         = 0.54;  // [0.1, 5]   scales EVERY star
+const float uStarFieldSize    = 1.13;  // [0.05, 3]  scales the smallest (faintest) stars
+const float uStarDensity      = 59.0;  // [5, 400] field density: star count scales with its SQUARE
+const float uStarCluster      = 1.00;  // [0, 1]   clumping; 0 = perfectly uniform field
+const float uStarClusterScale = 0.50;  // [0.5, 20] clump size: lower = bigger clumps
+const float uStarBright       = 1.31;  // [0, 4]   exposure
+const float uStarGlow         = 1.03;  // [0, 3]   glare around the brightest stars
+const float uStarCount        = 0.36;  // [0.05, 1] cell occupancy
 
 // nebula knobs (Space/Nebula/gyroid-clouds)
 const float uNebDensity    = 1.50;  // [0.1, 20]  overall gas density
