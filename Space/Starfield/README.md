@@ -35,7 +35,7 @@ magnitude law implements.
 ## The contract
 
 ```glsl
-vec3 starfieldSky(vec3 dir, float pxPerDir);
+vec3 starfieldSky(vec3 dir, float pxPerDir, out float transmittance);
 ```
 
 `pxPerDir` is the **only** host-specific value: the direction-units-per-*pixel* of the
@@ -50,14 +50,20 @@ view being rendered.
 Keeping star size in **pixels** is what makes the same shader look identical in the
 game, in the editor, and in a baked cubemap.
 
-### Compositing a nebula on top
+### Compositing layers
 
-The function returns **stars only**, so layers stay independent — the nebulae add
-their own colour and dim the stars they are in front of:
+Every layer shares one contract: it returns its own emission and writes into
+`transmittance` the fraction of the light from **behind** it that survives. The
+starfield absorbs nothing, so it always writes `1.0` — literally true, not a
+placeholder. Layers then compose with a single fold and no special case for the base:
 
 ```glsl
-col = starfieldSky(dir, ppd) * dustTransmittance + nebulaColour;
+float T;
+vec3 col = nebulaSky(dir, ppd, T);      // nearest layer's emission
+col += starfieldSky(dir, ppd, T) * T;   // ...times what gets through it
 ```
+
+Over a list, far to near: `col = layerSky(dir, ppd, T) + T * col;`
 
 ## Parameters
 
@@ -90,6 +96,9 @@ glslviewer Space/Starfield/starfield.frag              # source, hot-reloads on 
 shadered Space/Starfield/starfield.sprj                # sliders + the debugger
 # Godot: attach starfield.gdshader to a sphere; the scene must set uPxPerDir
 ```
+
+The source `#include`s `lib/`, so run glslviewer from the repo root (or add the root
+with `-I`).
 
 ## Things that are easy to get wrong
 

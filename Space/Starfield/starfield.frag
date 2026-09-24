@@ -18,7 +18,7 @@
 // is what the magnitude law below produces.
 //
 // ---------------------------------------------------------------- THE CONTRACT
-//     vec3 starfieldSky(vec3 dir, float pxPerDir);
+//     vec3 starfieldSky(vec3 dir, float pxPerDir, out float transmittance);
 //
 // `dir` is any direction (need not be normalised). `pxPerDir` is the only
 // host-specific value -- the direction-units-per-*pixel* of the view being rendered:
@@ -30,11 +30,17 @@
 // Keeping star size in PIXELS this way means the same shader looks identical in the
 // game, in the editor, and in a baked cubemap.
 //
-// The function returns STARS ONLY. A nebula layers on top by adding its own colour
-// and multiplying this result by a transmittance, so neither layer needs to know
-// about the other:
+// The function returns STARS ONLY. Every layer uses the same contract: it returns its
+// own emission and writes into `transmittance` the fraction of the light from BEHIND
+// it that survives. The starfield absorbs nothing, so it always writes 1.0 -- that is
+// literally true, not a placeholder -- which lets layers compose with a single fold
+// and no special case for the base:
 //
-//     col = starfieldSky(dir, ppd) * dustTransmittance + nebulaColour;
+//     float T;
+//     vec3 col = nebulaSky(dir, ppd, T);      // nearest layer's emission
+//     col += starfieldSky(dir, ppd, T) * T;   // ...times what gets through it
+//
+// Over a list, far to near:  col = layerSky(dir, ppd, T) + T * col;
 //
 // ---------------------------------------------------------------- LICENCE
 // GPL-3.0 (see LICENSE at the repository root).
@@ -73,16 +79,12 @@ const float uCount        = 0.60;  // [0.05, 1] cell occupancy: more stars, same
 
 // ===== SHARED MATHS =============================================================
 // Everything from here to the HOST marker is host-independent and is copied verbatim
-// into every generated output.
+// into every generated output. Shared maths lives in lib/; the builder inlines the
+// includes so generated files stay self-contained. This source runs in glslviewer
+// with `-I <repo root>`.
 
-float hash13(vec3 p3) {
-	p3 = fract(p3 * vec3(0.1031, 0.1030, 0.0973));
-	p3 += dot(p3, p3.yxz + 33.33);
-	return fract((p3.x + p3.y) * p3.z);
-}
-vec3 hash33(vec3 p3) {
-	return vec3(hash13(p3), hash13(p3 + 19.19), hash13(p3 + 41.77));
-}
+#include "lib/hash.glsl"
+#include "lib/noise.glsl"
 
 // Star colour by TEMPERATURE, cool -> hot: ~2500 K (deep orange) through sun-like to
 // ~30000 K (blue). Real stars are overwhelmingly cool dwarfs, but the ones that stand
@@ -103,27 +105,7 @@ vec3 starColour(float t) {
 	return mix(c5, c6, (t - 0.90) / 0.10);
 }
 
-// low-frequency noise, used only for the clustering field (once per pixel)
-float vnoise(vec3 p) {
-	vec3 i = floor(p), f = fract(p);
-	f = f * f * (3.0 - 2.0 * f);
-	float n = 0.0;
-	for (int z = 0; z < 2; z++)
-	for (int y = 0; y < 2; y++)
-	for (int x = 0; x < 2; x++) {
-		vec3 o = vec3(float(x), float(y), float(z));
-		n += hash13(i + o) * (mix(1.0 - f.x, f.x, o.x)
-		                    * mix(1.0 - f.y, f.y, o.y)
-		                    * mix(1.0 - f.z, f.z, o.z));
-	}
-	return n;
-}
-float fbm3(vec3 p) {
-	float a = 0.5, s = 0.0, t = 0.0;
-	for (int i = 0; i < 3; i++) { s += a * vnoise(p); t += a; p *= 2.03; a *= 0.5; }
-	return s / t;
-}
-
+// clusterField: the star-specific wrapper on the shared fbm3 (lib/noise.glsl).
 float clusterField(vec3 dir) {
 	if (uCluster <= 0.0) return 0.0;
 	return (fbm3(dir * uClusterScale + 3.0) - 0.5) * 2.0;
@@ -193,7 +175,7 @@ vec3 starPopulation(vec3 dir, float cells, float pxDir, float count, float seed)
 }
 
 // ===== THE CONTRACT =============================================================
-vec3 starfieldSky(vec3 dir, float pxPerDir) {
+vec3 starfieldSky(vec3 dir, float pxPerDir, out float transmittance) {
 	vec3 d = normalize(dir);
 
 	float cl  = clusterField(d);
@@ -204,6 +186,7 @@ vec3 starfieldSky(vec3 dir, float pxPerDir) {
 	col += starPopulation(d, uDensity * P2, pxPerDir, occ * 0.60, 17.0) * W2;
 	col += starPopulation(d, uDensity * P3, pxPerDir, occ * 0.35, 43.0) * W3;
 
+	transmittance = 1.0;  // the starfield is the base layer: it absorbs nothing
 	return col * uBright;
 }
 
@@ -219,5 +202,6 @@ void main() {
 	// direction units per pixel for this view (2*tan(fov/2)/height, fov ~71 degrees)
 	float pxPerDir = 1.0 / (1.4 * u_resolution.y);
 
-	gl_FragColor = vec4(starfieldSky(dir, pxPerDir), 1.0);
+	float transmittance;  // unused here, but every layer shares one contract
+	gl_FragColor = vec4(starfieldSky(dir, pxPerDir, transmittance), 1.0);
 }

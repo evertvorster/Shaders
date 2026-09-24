@@ -36,7 +36,17 @@ const float W3         = 0.55;
 
 // ===== SHARED MATHS =============================================================
 // Everything from here to the HOST marker is host-independent and is copied verbatim
-// into every generated output.
+// into every generated output. Shared maths lives in lib/; the builder inlines the
+// includes so generated files stay self-contained. This source runs in glslviewer
+// with `-I <repo root>`.
+
+// lib/hash.glsl — integer-lattice hashes, shared by every shader.
+//
+// Canonical sources keep `#include "lib/hash.glsl"` (repo-root-relative) and run in
+// glslviewer with `-I <repo root>`. The builders inline the include, so generated
+// per-host outputs stay self-contained.
+//
+// GPL-3.0 (see LICENSE at the repository root).
 
 float hash13(vec3 p3) {
 	p3 = fract(p3 * vec3(0.1031, 0.1030, 0.0973));
@@ -45,6 +55,32 @@ float hash13(vec3 p3) {
 }
 vec3 hash33(vec3 p3) {
 	return vec3(hash13(p3), hash13(p3 + 19.19), hash13(p3 + 41.77));
+}
+// lib/noise.glsl — value noise and fbm, built on lib/hash.glsl.
+//
+// Requires hash13() to be included first.
+//
+// GPL-3.0 (see LICENSE at the repository root).
+
+// low-frequency value noise (once per pixel is plenty at these frequencies)
+float vnoise(vec3 p) {
+	vec3 i = floor(p), f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	float n = 0.0;
+	for (int z = 0; z < 2; z++)
+	for (int y = 0; y < 2; y++)
+	for (int x = 0; x < 2; x++) {
+		vec3 o = vec3(float(x), float(y), float(z));
+		n += hash13(i + o) * (mix(1.0 - f.x, f.x, o.x)
+		                    * mix(1.0 - f.y, f.y, o.y)
+		                    * mix(1.0 - f.z, f.z, o.z));
+	}
+	return n;
+}
+float fbm3(vec3 p) {
+	float a = 0.5, s = 0.0, t = 0.0;
+	for (int i = 0; i < 3; i++) { s += a * vnoise(p); t += a; p *= 2.03; a *= 0.5; }
+	return s / t;
 }
 
 // Star colour by TEMPERATURE, cool -> hot: ~2500 K (deep orange) through sun-like to
@@ -66,27 +102,7 @@ vec3 starColour(float t) {
 	return mix(c5, c6, (t - 0.90) / 0.10);
 }
 
-// low-frequency noise, used only for the clustering field (once per pixel)
-float vnoise(vec3 p) {
-	vec3 i = floor(p), f = fract(p);
-	f = f * f * (3.0 - 2.0 * f);
-	float n = 0.0;
-	for (int z = 0; z < 2; z++)
-	for (int y = 0; y < 2; y++)
-	for (int x = 0; x < 2; x++) {
-		vec3 o = vec3(float(x), float(y), float(z));
-		n += hash13(i + o) * (mix(1.0 - f.x, f.x, o.x)
-		                    * mix(1.0 - f.y, f.y, o.y)
-		                    * mix(1.0 - f.z, f.z, o.z));
-	}
-	return n;
-}
-float fbm3(vec3 p) {
-	float a = 0.5, s = 0.0, t = 0.0;
-	for (int i = 0; i < 3; i++) { s += a * vnoise(p); t += a; p *= 2.03; a *= 0.5; }
-	return s / t;
-}
-
+// clusterField: the star-specific wrapper on the shared fbm3 (lib/noise.glsl).
 float clusterField(vec3 dir) {
 	if (uCluster <= 0.0) return 0.0;
 	return (fbm3(dir * uClusterScale + 3.0) - 0.5) * 2.0;
@@ -156,7 +172,7 @@ vec3 starPopulation(vec3 dir, float cells, float pxDir, float count, float seed)
 }
 
 // ===== THE CONTRACT =============================================================
-vec3 starfieldSky(vec3 dir, float pxPerDir) {
+vec3 starfieldSky(vec3 dir, float pxPerDir, out float transmittance) {
 	vec3 d = normalize(dir);
 
 	float cl  = clusterField(d);
@@ -167,6 +183,7 @@ vec3 starfieldSky(vec3 dir, float pxPerDir) {
 	col += starPopulation(d, uDensity * P2, pxPerDir, occ * 0.60, 17.0) * W2;
 	col += starPopulation(d, uDensity * P3, pxPerDir, occ * 0.35, 43.0) * W3;
 
+	transmittance = 1.0;  // the starfield is the base layer: it absorbs nothing
 	return col * uBright;
 }
 
@@ -180,5 +197,6 @@ void vertex() {
 }
 
 void fragment() {
-	ALBEDO = starfieldSky(normalize(v_dir), uPxPerDir);
+	float transmittance;
+	ALBEDO = starfieldSky(normalize(v_dir), uPxPerDir, transmittance);
 }

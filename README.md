@@ -9,6 +9,9 @@ script in `Tools/` generates the per-host variants.
 ```
 Space/
   Starfield/          procedural star base layer (source + generated formats)
+lib/
+  hash.glsl           shared hashes (hash13, hash33)
+  noise.glsl          shared value noise / fbm
 Tools/
   build_starfield.py  generates every format from Space/Starfield/starfield.frag
 ```
@@ -27,6 +30,32 @@ The same shader has to run in more than one place:
 Rather than keep four hand-copied variants in sync (which is how they silently
 diverge), each shader has one source file and a builder. Generated files are committed
 so they can be used without running anything.
+
+## Shared code
+
+GLSL used by more than one shader lives in `lib/`. A canonical source pulls it in with
+`#include "lib/foo.glsl"` (repo-root-relative), and the builder **inlines** it, so every
+generated output stays self-contained — SHADERed and Godot consumers do not resolve our
+include paths. Running a source in glslviewer needs the repo root on the include path
+(`-I .`); easiest is simply to run it from the repo root.
+
+## The layer convention
+
+Every sky layer shares one contract — it returns its own emission and reports how much
+light from **behind** it survives:
+
+```glsl
+vec3 someLayerSky(vec3 dir, float pxPerDir, out float transmittance);
+```
+
+Layers compose with a single fold, so a compositor never special-cases the base
+(the starfield absorbs nothing and simply writes `1.0`):
+
+```glsl
+float T;
+vec3 col = vec3(0.0);
+// far to near:  col = layerSky(dir, ppd, T) + T * col;
+```
 
 ## Building
 

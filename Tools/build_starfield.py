@@ -14,6 +14,10 @@ The source is split on its section markers, so the maths is written exactly once
     // ===== SHARED      maths + the contract, copied verbatim
     // ===== HOST        host-specific plumbing, REPLACED per host
 
+The source may `#include "lib/foo.glsl"` (paths relative to the repo root). Those are
+inlined into every generated output, so the outputs stay self-contained -- SHADERed
+and Godot consumers do not resolve our include paths.
+
 Usage:
     python3 Tools/build_starfield.py            # generate + verify
     python3 Tools/build_starfield.py --check    # verify only
@@ -37,10 +41,28 @@ SOURCE = os.path.join(OUTDIR, "starfield.frag")
 # SHADERed face order, GL/DDS convention, for reference cubemap objects:
 #   left = -X   right = +X   top = +Y   bottom = -Y   front = -Z   back = +Z
 
+INCLUDE_RE = re.compile(r'^[ \t]*#include[ \t]+"([^"]+)"[ \t]*$', re.M)
+
+
+def resolve_includes(text):
+    """Inline `#include "path"` lines, paths relative to the repo root.
+
+    Generated outputs must be self-contained: SHADERed and Godot consumers do not
+    resolve our include paths, so inlining happens here rather than at the host.
+    Includes nest; canonical sources run in glslviewer with `-I <repo root>`.
+    """
+    def repl(m):
+        path = os.path.join(ROOT, m.group(1))
+        if not os.path.isfile(path):
+            raise SystemExit("include not found: %s" % path)
+        with open(path) as f:
+            return resolve_includes(f.read()).rstrip()
+    return INCLUDE_RE.sub(repl, text)
+
 
 def read_source():
     with open(SOURCE) as f:
-        lines = f.read().split("\n")
+        lines = resolve_includes(f.read()).split("\n")
 
     def find(prefix):
         for i, ln in enumerate(lines):
@@ -110,7 +132,8 @@ void main() {{
 	// direction units per pixel: 2*tan(fov/2)/height, with fov ~71 degrees
 	float pxPerDir = 1.0 / (1.4 * iResolution.y);
 
-	outColor = vec4(starfieldSky(dir, pxPerDir), 1.0);
+	float transmittance;
+	outColor = vec4(starfieldSky(dir, pxPerDir, transmittance), 1.0);
 }}
 """
 
@@ -223,7 +246,8 @@ void vertex() {{
 }}
 
 void fragment() {{
-	ALBEDO = starfieldSky(normalize(v_dir), uPxPerDir);
+	float transmittance;
+	ALBEDO = starfieldSky(normalize(v_dir), uPxPerDir, transmittance);
 }}
 """
 
