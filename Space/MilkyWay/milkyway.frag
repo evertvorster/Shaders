@@ -31,7 +31,9 @@ const float uMwNoiseScale = 15.9;  // [0.5, 60]   size of the turbulence
 const float uMwBright     = 0.45;  // [0, 4]      bright band brightness
 const float uMwDust       = 4.00;  // [0, 12]     dark band extinction
 const float uMwDustWidth  = 0.10;  // [0.01, 0.4] dark band width
+const float uMwDustFalloff = 1.50; // [0.5, 8]    dark band falloff (separate from the bright band)
 const float uMwDustOffset = 0.02;  // [-0.15, 0.15] dark band offset from the midplane
+const float uMwDustTint   = 1.00;  // [0, 2]      how brown the dark band is (0 = black)
 const float uMwCore       = 2.78;  // [0, 4]      core brightness
 const float uMwCoreSize   = 0.15;  // [0.05, 0.8] core angular size
 

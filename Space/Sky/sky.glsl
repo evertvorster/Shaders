@@ -42,7 +42,9 @@ uniform float uMwNoiseScale;
 uniform float uMwBright;
 uniform float uMwDust;
 uniform float uMwDustWidth;
+uniform float uMwDustFalloff;
 uniform float uMwDustOffset;
+uniform float uMwDustTint;
 uniform float uMwCore;
 uniform float uMwCoreSize;
 
@@ -725,10 +727,11 @@ vec3 milkywaySky(vec3 dir, float pxPerDir, out vec3 transmittance) {
 
 	// ---- 1. the dark turbulent band, IN FRONT ----
 	float wDark = uMwDustWidth * mix(1.0 - uMwTaper, 1.0, thick);
-	float dark = exp(-pow(abs(b - uMwDustOffset) / wDark, uMwFalloff)) * present;
-	dark *= 0.35 + 1.20 * smoothstep(0.25, 0.70, mwFbm(q * 1.4 + 21.0, 4));
+	float dark = exp(-pow(abs(b - uMwDustOffset) / wDark, uMwDustFalloff)) * present;
+	dark *= 0.50 + 1.50 * smoothstep(0.25, 0.70, mwFbm(q * 1.4 + 21.0, 4));
 
-	vec3 dustAbs = vec3(0.70, 0.82, 1.0);
+	// Extinction is chromatic: dust eats blue first, so what gets through is redder.
+	vec3 dustAbs = vec3(0.60, 0.82, 1.10);
 	vec3 T = exp(-dustAbs * uMwDust * dark);
 
 	// ---- compose: emission is behind the dark band ----
@@ -736,7 +739,12 @@ vec3 milkywaySky(vec3 dir, float pxPerDir, out vec3 transmittance) {
 	vec3 coreColour   = vec3(1.00, 0.95, 0.85);
 
 	vec3 col = brightColour * bright * uMwBright + coreColour * core * uMwCore;
-	col *= T;
+
+	// The dust is NOT transparent black. Where it is opaque it reads as a very dark
+	// brown, so this is a normal "over" of a dust layer (colour, opacity 1-T) on the
+	// emission behind it, rather than a multiply straight to zero.
+	vec3 dustColour = vec3(0.055, 0.030, 0.016) * uMwDustTint;
+	col = mix(dustColour, col, T);
 
 	transmittance = T;
 	return col;

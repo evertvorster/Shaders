@@ -15,7 +15,9 @@ uniform float uMwNoiseScale : hint_range(0.5, 60, 0.1) = 15.9;  // size of the t
 uniform float uMwBright : hint_range(0, 4, 0.01) = 0.45;  // bright band brightness
 uniform float uMwDust : hint_range(0, 12, 0.1) = 4.00;  // dark band extinction
 uniform float uMwDustWidth : hint_range(0.01, 0.4, 0.001) = 0.10;  // dark band width
+uniform float uMwDustFalloff : hint_range(0.5, 8, 0.01) = 1.50;  // dark band falloff (separate from the bright band)
 uniform float uMwDustOffset : hint_range(-0.15, 0.15, 0.001) = 0.02;  // dark band offset from the midplane
+uniform float uMwDustTint : hint_range(0, 2, 0.01) = 1.00;  // how brown the dark band is (0 = black)
 uniform float uMwCore : hint_range(0, 4, 0.01) = 2.78;  // core brightness
 uniform float uMwCoreSize : hint_range(0.05, 0.8, 0.001) = 0.15;  // core angular size
 
@@ -215,10 +217,11 @@ vec3 milkywaySky(vec3 dir, float pxPerDir, out vec3 transmittance) {
 
 	// ---- 1. the dark turbulent band, IN FRONT ----
 	float wDark = uMwDustWidth * mix(1.0 - uMwTaper, 1.0, thick);
-	float dark = exp(-pow(abs(b - uMwDustOffset) / wDark, uMwFalloff)) * present;
-	dark *= 0.35 + 1.20 * smoothstep(0.25, 0.70, mwFbm(q * 1.4 + 21.0, 4));
+	float dark = exp(-pow(abs(b - uMwDustOffset) / wDark, uMwDustFalloff)) * present;
+	dark *= 0.50 + 1.50 * smoothstep(0.25, 0.70, mwFbm(q * 1.4 + 21.0, 4));
 
-	vec3 dustAbs = vec3(0.70, 0.82, 1.0);
+	// Extinction is chromatic: dust eats blue first, so what gets through is redder.
+	vec3 dustAbs = vec3(0.60, 0.82, 1.10);
 	vec3 T = exp(-dustAbs * uMwDust * dark);
 
 	// ---- compose: emission is behind the dark band ----
@@ -226,7 +229,12 @@ vec3 milkywaySky(vec3 dir, float pxPerDir, out vec3 transmittance) {
 	vec3 coreColour   = vec3(1.00, 0.95, 0.85);
 
 	vec3 col = brightColour * bright * uMwBright + coreColour * core * uMwCore;
-	col *= T;
+
+	// The dust is NOT transparent black. Where it is opaque it reads as a very dark
+	// brown, so this is a normal "over" of a dust layer (colour, opacity 1-T) on the
+	// emission behind it, rather than a multiply straight to zero.
+	vec3 dustColour = vec3(0.055, 0.030, 0.016) * uMwDustTint;
+	col = mix(dustColour, col, T);
 
 	transmittance = T;
 	return col;
