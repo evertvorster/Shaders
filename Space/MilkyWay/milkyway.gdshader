@@ -6,6 +6,7 @@ render_mode cull_front, unshaded, depth_draw_never, depth_test_disabled;
 uniform float uMwPitch : hint_range(0, 3.14, 0.01) = 0.00;  // tilt of the galactic plane
 uniform float uMwYaw : hint_range(0, 6.28, 0.01) = 0.00;  // yaw of the plane
 uniform float uMwCoreAngle : hint_range(0, 6.28, 0.01) = 0.00;  // where the core sits along the band
+uniform float uMwDistance : hint_range(0.25, 4, 0.01) = 1.00;  // scale every element: further / nearer the centre
 uniform float uMwWidth : hint_range(0.02, 0.6, 0.001) = 0.10;  // bright band thickness (at the centre)
 uniform float uMwSpan : hint_range(15, 180, 1) = 70.0;  // half-width of the arc, in degrees
 uniform float uMwTaper : hint_range(0, 1, 0.01) = 0.60;  // how much thinner the bands get at the sides
@@ -179,10 +180,15 @@ vec3 milkywaySky(vec3 dir, float pxPerDir, out vec3 transmittance) {
 	vec3 coreDir = normalize(cos(uMwCoreAngle) * ax + sin(uMwCoreAngle) * ay);  // band centre
 	vec3 sideDir = cross(pole, coreDir);                                        // 90 deg along
 
-	float b = dot(d, pole);                 // across the band
+	// One scale on all the angular sizes: larger = further from the centre = everything
+	// tighter, smaller = nearer = the band and core open out. Multiplies the band-space
+	// coordinates, so the turbulence and the widths scale together.
+	float dist = uMwDistance;
+
+	float b = dot(d, pole) * dist;          // across the band
 	float c = dot(d, coreDir);
 	float s = dot(d, sideDir);
-	float deg = degrees(abs(atan(s, c)));   // along it: 0 at the centre, up to 180 out
+	float deg = degrees(abs(atan(s, c))) * dist;   // along it: 0 at the centre, out to 180
 
 	// The arc, in DEGREES: uMwSpan is its half-width, and the band fades past it. Working
 	// in degrees (not a normalised 0..1) keeps both transitions inside the view, where a
@@ -202,7 +208,7 @@ vec3 milkywaySky(vec3 dir, float pxPerDir, out vec3 transmittance) {
 	bright += band * grain * 1.5;           // brighter star-cloud knots
 
 	// ---- 3. the galactic core, at the band centre ----
-	float ang = acos(clamp(c, -1.0, 1.0));
+	float ang = acos(clamp(c, -1.0, 1.0)) * dist;
 	float core = exp(-(ang * ang) / (uMwCoreSize * uMwCoreSize));
 	core *= mix(0.35, 1.0, n);              // the core has dust across it
 

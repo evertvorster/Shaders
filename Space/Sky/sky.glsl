@@ -33,6 +33,7 @@ uniform float uNebSteps;
 uniform float uMwPitch;
 uniform float uMwYaw;
 uniform float uMwCoreAngle;
+uniform float uMwDistance;
 uniform float uMwWidth;
 uniform float uMwSpan;
 uniform float uMwTaper;
@@ -689,10 +690,15 @@ vec3 milkywaySky(vec3 dir, float pxPerDir, out vec3 transmittance) {
 	vec3 coreDir = normalize(cos(uMwCoreAngle) * ax + sin(uMwCoreAngle) * ay);  // band centre
 	vec3 sideDir = cross(pole, coreDir);                                        // 90 deg along
 
-	float b = dot(d, pole);                 // across the band
+	// One scale on all the angular sizes: larger = further from the centre = everything
+	// tighter, smaller = nearer = the band and core open out. Multiplies the band-space
+	// coordinates, so the turbulence and the widths scale together.
+	float dist = uMwDistance;
+
+	float b = dot(d, pole) * dist;          // across the band
 	float c = dot(d, coreDir);
 	float s = dot(d, sideDir);
-	float deg = degrees(abs(atan(s, c)));   // along it: 0 at the centre, up to 180 out
+	float deg = degrees(abs(atan(s, c))) * dist;   // along it: 0 at the centre, out to 180
 
 	// The arc, in DEGREES: uMwSpan is its half-width, and the band fades past it. Working
 	// in degrees (not a normalised 0..1) keeps both transitions inside the view, where a
@@ -712,7 +718,7 @@ vec3 milkywaySky(vec3 dir, float pxPerDir, out vec3 transmittance) {
 	bright += band * grain * 1.5;           // brighter star-cloud knots
 
 	// ---- 3. the galactic core, at the band centre ----
-	float ang = acos(clamp(c, -1.0, 1.0));
+	float ang = acos(clamp(c, -1.0, 1.0)) * dist;
 	float core = exp(-(ang * ang) / (uMwCoreSize * uMwCoreSize));
 	core *= mix(0.35, 1.0, n);              // the core has dust across it
 

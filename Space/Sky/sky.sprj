@@ -92,6 +92,9 @@
 				<variable type="float" name="uMwCoreAngle">
 					<row><value>0.00</value></row>
 				</variable>
+				<variable type="float" name="uMwDistance">
+					<row><value>1.00</value></row>
+				</variable>
 				<variable type="float" name="uMwWidth">
 					<row><value>0.10</value></row>
 				</variable>

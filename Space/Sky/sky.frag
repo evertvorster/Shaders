@@ -78,6 +78,7 @@ const float uNebSteps      = 16.0;  // [6, 64]    march steps: quality vs speed
 const float uMwPitch      = 0.00;  // [0, 3.14]   tilt of the galactic plane
 const float uMwYaw        = 0.00;  // [0, 6.28]   yaw of the plane
 const float uMwCoreAngle  = 0.00;  // [0, 6.28]   where the core sits along the band
+const float uMwDistance   = 1.00;  // [0.25, 4]   scale every element: further / nearer the centre
 const float uMwWidth      = 0.10;  // [0.02, 0.6] bright band thickness (at the centre)
 const float uMwSpan       = 70.0;  // [15, 180]   half-width of the arc, in degrees
 const float uMwTaper      = 0.60;  // [0, 1]      how much thinner the bands get at the sides
