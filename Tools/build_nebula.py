@@ -1,32 +1,25 @@
 #!/usr/bin/env python3
-"""build_starfield.py — generate every host format of the starfield base layer.
+"""build_nebula.py — generate every host format of every nebula variant.
 
-    Space/Starfield/starfield.frag   the canonical source (also the glslviewer build)
+    Space/Nebula/<variant>.frag     canonical source (also the glslviewer build)
         |
-        +-- starfield.glsl          SHADERed / Shadertoy-style
-        +-- starfield.sprj          SHADERed project (carries the slider values)
-        +-- starfield.gdshader      Godot 4 spatial shader for a sky sphere
+        +-- <variant>.glsl          SHADERed / Shadertoy-style
+        +-- <variant>.sprj          SHADERed project (carries the slider values)
+        +-- <variant>.gdshader      Godot 4 spatial shader for a sky sphere
 
-The source is split on its section markers, so the maths is written exactly once:
+Every `*.frag` in Space/Nebula/ is treated as a variant; the variant name is the file
+stem, so it lives in every generated filename. The source is split on its section
+markers (see build_starfield.py, which this mirrors) and may `#include "lib/..."`.
 
-    // ===== PHYSICS     constants, copied verbatim into every output
-    // ===== VARIABLES   the knobs; each annotated "[min, max] description"
-    // ===== SHARED      maths + the contract, copied verbatim
-    // ===== HOST        host-specific plumbing, REPLACED per host
+    python3 Tools/build_nebula.py            # generate + verify all variants
+    python3 Tools/build_nebula.py --check    # verify only
 
-The source may `#include "lib/foo.glsl"` (paths relative to the repo root). Those are
-inlined into every generated output, so the outputs stay self-contained -- SHADERed
-and Godot consumers do not resolve our include paths.
-
-Usage:
-    python3 Tools/build_starfield.py            # generate + verify
-    python3 Tools/build_starfield.py --check    # verify only
-
-GLSL outputs are verified with glslangValidator when it is installed (it checks GLSL
-without needing a GPU). The Godot output is checked structurally -- its boilerplate is
-Godot's own dialect, which glslangValidator cannot parse.
+This shares its pattern with build_starfield.py rather than a module, for now; if a
+third builder appears, the common plumbing should move into Tools/shader_build.py.
 """
 
+import glob
+import math
 import os
 import re
 import shutil
@@ -35,22 +28,13 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-OUTDIR = os.path.join(ROOT, "Space", "Starfield")
-SOURCE = os.path.join(OUTDIR, "starfield.frag")
-
-# SHADERed face order, GL/DDS convention, for reference cubemap objects:
-#   left = -X   right = +X   top = +Y   bottom = -Y   front = -Z   back = +Z
+OUTDIR = os.path.join(ROOT, "Space", "Nebula")
 
 INCLUDE_RE = re.compile(r'^[ \t]*#include[ \t]+"([^"]+)"[ \t]*$', re.M)
 
 
 def resolve_includes(text):
-    """Inline `#include "path"` lines, paths relative to the repo root.
-
-    Generated outputs must be self-contained: SHADERed and Godot consumers do not
-    resolve our include paths, so inlining happens here rather than at the host.
-    Includes nest; canonical sources run in glslviewer with `-I <repo root>`.
-    """
+    """Inline `#include "path"` lines, paths relative to the repo root."""
     def repl(m):
         path = os.path.join(ROOT, m.group(1))
         if not os.path.isfile(path):
@@ -60,15 +44,19 @@ def resolve_includes(text):
     return INCLUDE_RE.sub(repl, text)
 
 
-def read_source():
-    with open(SOURCE) as f:
+VAR_RE = re.compile(
+    r"^const\s+float\s+(\w+)\s*=\s*([-\d.]+)\s*;\s*(?://\s*)?(?:\[([^\]]+)\]\s*)?(.*)$")
+
+
+def read_source(path):
+    with open(path) as f:
         lines = resolve_includes(f.read()).split("\n")
 
     def find(prefix):
         for i, ln in enumerate(lines):
             if ln.startswith(prefix):
                 return i
-        raise SystemExit("marker not found in source: %r" % prefix)
+        raise SystemExit("marker not found in %s: %r" % (path, prefix))
 
     i_phys = find("// ===== PHYSICS")
     i_vars = find("// ===== VARIABLES")
@@ -78,12 +66,9 @@ def read_source():
     physics = "\n".join(lines[i_phys:i_vars]).rstrip()
     shared = "\n".join(lines[i_shared:i_host]).rstrip()
 
-    # VARIABLES: `const float name = value;  // [min, max] description`
-    pat = re.compile(
-        r"^const\s+float\s+(\w+)\s*=\s*([-\d.]+)\s*;\s*(?://\s*)?(?:\[([^\]]+)\]\s*)?(.*)$")
     variables = []
     for ln in lines[i_vars:i_shared]:
-        m = pat.match(ln.strip())
+        m = VAR_RE.match(ln.strip())
         if m:
             name, value, rng, note = m.groups()
             lo = hi = None
@@ -94,15 +79,26 @@ def read_source():
             variables.append({"name": name, "value": value,
                               "min": lo, "max": hi, "note": (note or "").strip()})
     if not variables:
-        raise SystemExit("no variables parsed -- check the annotations")
+        raise SystemExit("no variables parsed in %s -- check the annotations" % path)
     return physics, shared, variables
 
 
 def godot_step(lo, hi):
-    """A sensible hint_range step: a power of ten about 1/100 of the range."""
-    import math
     span = max(hi - lo, 1e-6)
     return 10.0 ** math.floor(math.log10(span / 100.0))
+
+
+# The camera + tone-map helpers the generated hosts need, because the source keeps them
+# in its HOST section (which the builder replaces). Kept identical to the source.
+CAMERA_HELPERS = """vec3 cameraRay(vec2 fragCoord, vec2 resolution, float fovDeg) {
+	vec2 xy = fragCoord - resolution * 0.5;
+	float z = (0.5 * resolution.y) / tan(radians(fovDeg) * 0.5);
+	return normalize(vec3(xy, -z));
+}
+
+vec3 aces(vec3 x) {
+	return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0);
+}"""
 
 
 def emit_shadered(physics, shared, variables):
@@ -110,35 +106,42 @@ def emit_shadered(physics, shared, variables):
     return f"""#version 330
 out vec4 outColor;
 
-// GENERATED by Tools/build_starfield.py from starfield.frag -- do not edit by hand.
+// GENERATED by Tools/build_nebula.py from the variant's .frag -- do not edit by hand.
 // SHADERed build. NOTE: #version must be the literal first line for SHADERed, and
 // its GLSL mode is Shadertoy-compatible (iResolution / iMouse / iTime).
 uniform vec2  iResolution;
 uniform float iTime;
 uniform vec2  iMouse;
 
-// The knob values live in starfield.sprj, not here: GLSL uniforms cannot have
-// initialisers, which is why SHADERed shows them as variables you can edit.
+// The knob values live in the .sprj, not here: GLSL uniforms cannot have initialisers,
+// which is why SHADERed shows them as variables you can edit.
 {uni}
 
 {physics}
 
 {shared}
 
-void main() {{
-	vec2 uv  = (gl_FragCoord.xy - 0.5 * iResolution) / iResolution.y;
-	vec3 dir = normalize(vec3(uv, 1.4));
+{CAMERA_HELPERS}
 
-	// direction units per pixel: 2*tan(fov/2)/height, with fov ~71 degrees
-	float pxPerDir = 1.0 / (1.4 * iResolution.y);
+void main() {{
+	// Fixed camera just off the volume centre, looking outward (reproducible).
+	vec3 camPos = vec3(0.40, 0.15, 0.0);
+	vec3 targetDir = normalize(camPos);
+	mat3 view = lookAt(targetDir, vec3(0.0, 1.0, 0.0));
+	float fov = 55.0;
+	vec3 dir = normalize(view * cameraRay(gl_FragCoord.xy, iResolution, fov));
+	float pxPerDir = 2.0 * tan(radians(fov * 0.5)) / iResolution.y;
 
 	vec3 transmittance;
-	outColor = vec4(starfieldSky(dir, pxPerDir, transmittance), 1.0);
+	vec3 col = nebulaSky(camPos, dir, pxPerDir, transmittance);
+
+	col = aces(col);
+	outColor = vec4(pow(col, vec3(0.4545)), 1.0);
 }}
 """
 
 
-def emit_sprj(variables):
+def emit_sprj(variables, base):
     var_xml = "".join(
         '\n\t\t\t\t<variable type="float" name="%s">\n'
         '\t\t\t\t\t<row><value>%s</value></row>\n'
@@ -146,9 +149,9 @@ def emit_sprj(variables):
     return f"""<?xml version="1.0"?>
 <project version="2">
 \t<pipeline>
-\t\t<pass name="Starfield" type="shader" active="true" patchverts="1">
-\t\t\t<shader type="vs" path="starfield.vert" entry="main" />
-\t\t\t<shader type="ps" path="starfield.glsl" entry="main" />
+\t\t<pass name="{base}" type="shader" active="true" patchverts="1">
+\t\t\t<shader type="vs" path="{base}.vert" entry="main" />
+\t\t\t<shader type="ps" path="{base}.glsl" entry="main" />
 \t\t\t<inputlayout>
 \t\t\t\t<item value="Position" semantic="POSITION" />
 \t\t\t\t<item value="Normal" semantic="NORMAL" />
@@ -178,9 +181,9 @@ def emit_sprj(variables):
 \t<objects />
 \t<cameras />
 \t<settings>
-\t\t<entry type="property" name="Starfield" item="pipe" />
-\t\t<entry type="file" name="Starfield" shader="vs" />
-\t\t<entry type="file" name="Starfield" shader="ps" />
+\t\t<entry type="property" name="{base}" item="pipe" />
+\t\t<entry type="file" name="{base}" shader="vs" />
+\t\t<entry type="file" name="{base}" shader="ps" />
 \t\t<entry type="camera" fp="false">
 \t\t\t<distance>19</distance>
 \t\t\t<pitch>89</pitch>
@@ -215,21 +218,21 @@ def emit_godot(physics, shared, variables):
         if v["min"] is not None else
         "uniform float %s = %s;  // %s" % (v["name"], v["value"], v["note"])
         for v in variables)
-    return f"""// GENERATED by Tools/build_starfield.py from starfield.frag -- do not edit by hand.
+    return f"""// GENERATED by Tools/build_nebula.py from the variant's .frag -- do not edit by hand.
 // Godot 4 spatial shader for a sky sphere: an inverted sphere (cull_front) with the
 // camera at its centre. Attach to a MeshInstance3D SphereMesh of any large radius.
 //
-// The host must set uPxPerDir -- the direction-units-per-pixel of the current view --
-// because star size is specified in PIXELS. From GDScript, on ready and on resize:
+// The host must set uCamPos to the camera's world position (the volume is world-space,
+// so this is what gives parallax) and uPxPerDir on ready / on resize.
 //
-//     var h := max(get_viewport().get_visible_rect().size.y, 1.0)
-//     mat.set_shader_parameter("uPxPerDir", 2.0 * tan(deg_to_rad(cam.fov * 0.5)) / h)
+// PROVISIONAL: the volume is world-fixed at the origin, so it is only in view when the
+// camera is near it; a real scene would place the volume and pass its transform.
 shader_type spatial;
 render_mode cull_front, unshaded, depth_draw_never, depth_test_disabled;
 
 {uni}
 
-// Host plumbing: set by the scene, not a user knob.
+uniform vec3  uCamPos = vec3(0.0, 0.0, 0.0);
 uniform float uPxPerDir : hint_range(0.00005, 0.02, 0.00005) = 0.0013;
 
 {physics}
@@ -246,8 +249,11 @@ void vertex() {{
 }}
 
 void fragment() {{
+	vec3 dir = normalize(v_dir);
 	vec3 transmittance;
-	ALBEDO = starfieldSky(normalize(v_dir), uPxPerDir, transmittance);
+	vec3 col = nebulaSky(uCamPos, dir, uPxPerDir, transmittance);
+	col = aces(col);
+	ALBEDO = pow(col, vec3(0.4545));
 }}
 """
 
@@ -269,33 +275,37 @@ def verify(path, stage):
     return "OK"
 
 
-def main():
-    check_only = "--check" in sys.argv
-    physics, shared, variables = read_source()
-    print("source : %s" % os.path.relpath(SOURCE, ROOT))
-    print("physics: %d lines, shared: %d lines, variables: %d"
-          % (physics.count("\n") + 1, shared.count("\n") + 1, len(variables)))
-
+def build(base, source, check_only):
+    physics, shared, variables = read_source(source)
     outputs = [
-        ("starfield.glsl",     emit_shadered(physics, shared, variables), "frag"),
-        ("starfield.sprj",     emit_sprj(variables),                      None),
-        ("starfield.vert",     VERT,                                      "vert"),
-        ("starfield.gdshader", emit_godot(physics, shared, variables),    None),
+        ("%s.glsl"     % base, emit_shadered(physics, shared, variables), "frag"),
+        ("%s.sprj"     % base, emit_sprj(variables, base),                None),
+        ("%s.vert"     % base, VERT,                                      "vert"),
+        ("%s.gdshader" % base, emit_godot(physics, shared, variables),    None),
     ]
-
+    print("\nvariant: %s" % base)
     if not check_only:
         for name, text, _ in outputs:
             with open(os.path.join(OUTDIR, name), "w") as f:
                 f.write(text)
         print("wrote  : %s" % ", ".join(n for n, _, _ in outputs))
-
-    print("verify :")
     bad = 0
     for name, _, stage in outputs:
         res = verify(os.path.join(OUTDIR, name), stage)
         if res.startswith("FAILED"):
             bad += 1
-        print("    %-20s %s" % (name, res))
+        print("    %-24s %s" % (name, res))
+    return bad
+
+
+def main():
+    check_only = "--check" in sys.argv
+    sources = sorted(glob.glob(os.path.join(OUTDIR, "*.frag")))
+    if not sources:
+        raise SystemExit("no variants found in %s" % OUTDIR)
+    bad = 0
+    for source in sources:
+        bad += build(os.path.basename(source)[:-len(".frag")], source, check_only)
     sys.exit(1 if bad else 0)
 
 

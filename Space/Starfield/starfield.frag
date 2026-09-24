@@ -18,7 +18,7 @@
 // is what the magnitude law below produces.
 //
 // ---------------------------------------------------------------- THE CONTRACT
-//     vec3 starfieldSky(vec3 dir, float pxPerDir, out float transmittance);
+//     vec3 starfieldSky(vec3 dir, float pxPerDir, out vec3 transmittance);
 //
 // `dir` is any direction (need not be normalised). `pxPerDir` is the only
 // host-specific value -- the direction-units-per-*pixel* of the view being rendered:
@@ -32,15 +32,16 @@
 //
 // The function returns STARS ONLY. Every layer uses the same contract: it returns its
 // own emission and writes into `transmittance` the fraction of the light from BEHIND
-// it that survives. The starfield absorbs nothing, so it always writes 1.0 -- that is
-// literally true, not a placeholder -- which lets layers compose with a single fold
-// and no special case for the base:
+// it that survives -- per channel, because dust and gas absorb unevenly and redden
+// what is behind them. The starfield absorbs nothing, so it writes vec3(1.0) -- that is
+// literally true, not a placeholder -- which lets layers compose with a single fold and
+// no special case for the base:
 //
-//     float T;
-//     vec3 col = nebulaSky(dir, ppd, T);      // nearest layer's emission
-//     col += starfieldSky(dir, ppd, T) * T;   // ...times what gets through it
+//     vec3 T;
+//     vec3 col = nebulaSky(camPos, dir, ppd, T);   // nearest layer's emission
+//     col += starfieldSky(dir, ppd, T);            // ...times what gets through it
 //
-// Over a list, far to near:  col = layerSky(dir, ppd, T) + T * col;
+// Over a list, far to near:  col = layerSky(..., T) + T * col;
 //
 // ---------------------------------------------------------------- LICENCE
 // GPL-3.0 (see LICENSE at the repository root).
@@ -175,7 +176,7 @@ vec3 starPopulation(vec3 dir, float cells, float pxDir, float count, float seed)
 }
 
 // ===== THE CONTRACT =============================================================
-vec3 starfieldSky(vec3 dir, float pxPerDir, out float transmittance) {
+vec3 starfieldSky(vec3 dir, float pxPerDir, out vec3 transmittance) {
 	vec3 d = normalize(dir);
 
 	float cl  = clusterField(d);
@@ -186,7 +187,7 @@ vec3 starfieldSky(vec3 dir, float pxPerDir, out float transmittance) {
 	col += starPopulation(d, uDensity * P2, pxPerDir, occ * 0.60, 17.0) * W2;
 	col += starPopulation(d, uDensity * P3, pxPerDir, occ * 0.35, 43.0) * W3;
 
-	transmittance = 1.0;  // the starfield is the base layer: it absorbs nothing
+	transmittance = vec3(1.0);  // the starfield is the base layer: it absorbs nothing
 	return col * uBright;
 }
 
@@ -202,6 +203,6 @@ void main() {
 	// direction units per pixel for this view (2*tan(fov/2)/height, fov ~71 degrees)
 	float pxPerDir = 1.0 / (1.4 * u_resolution.y);
 
-	float transmittance;  // unused here, but every layer shares one contract
+	vec3 transmittance;  // unused here, but every layer shares one contract
 	gl_FragColor = vec4(starfieldSky(dir, pxPerDir, transmittance), 1.0);
 }

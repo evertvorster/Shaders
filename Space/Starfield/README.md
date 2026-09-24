@@ -35,7 +35,7 @@ magnitude law implements.
 ## The contract
 
 ```glsl
-vec3 starfieldSky(vec3 dir, float pxPerDir, out float transmittance);
+vec3 starfieldSky(vec3 dir, float pxPerDir, out vec3 transmittance);
 ```
 
 `pxPerDir` is the **only** host-specific value: the direction-units-per-*pixel* of the
@@ -53,17 +53,18 @@ game, in the editor, and in a baked cubemap.
 ### Compositing layers
 
 Every layer shares one contract: it returns its own emission and writes into
-`transmittance` the fraction of the light from **behind** it that survives. The
-starfield absorbs nothing, so it always writes `1.0` — literally true, not a
-placeholder. Layers then compose with a single fold and no special case for the base:
+`transmittance` the fraction of the light from **behind** it that survives — per channel,
+because gas and dust absorb unevenly and redden what is behind them. The starfield
+absorbs nothing, so it always writes `vec3(1.0)` — literally true, not a placeholder.
+Layers then compose with a single fold and no special case for the base:
 
 ```glsl
-float T;
-vec3 col = nebulaSky(dir, ppd, T);      // nearest layer's emission
-col += starfieldSky(dir, ppd, T) * T;   // ...times what gets through it
+vec3 T;
+vec3 col = nebulaSky(camPos, dir, ppd, T);   // nearest layer's emission
+col += starfieldSky(dir, ppd, T);            // distant dome, times what gets through
 ```
 
-Over a list, far to near: `col = layerSky(dir, ppd, T) + T * col;`
+Over a list, far to near: `col = layerSky(..., T) + T * col;`
 
 ## Parameters
 

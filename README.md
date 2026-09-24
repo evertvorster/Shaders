@@ -9,11 +9,15 @@ script in `Tools/` generates the per-host variants.
 ```
 Space/
   Starfield/          procedural star base layer (source + generated formats)
+  Nebula/             volumetric emission nebulae, one file per variant
 lib/
   hash.glsl           shared hashes (hash13, hash33)
   noise.glsl          shared value noise / fbm
+  raymarch.glsl       shared volume/camera helpers (AABB, phase, dither, lookAt)
 Tools/
   build_starfield.py  generates every format from Space/Starfield/starfield.frag
+  build_nebula.py     generates every format for each Space/Nebula/*.frag
+  preview.sh          render one frame headlessly to a PNG (for looking at work)
 ```
 
 ## Why one source, several formats
@@ -42,14 +46,17 @@ include paths. Running a source in glslviewer needs the repo root on the include
 ## The layer convention
 
 Every sky layer shares one contract — it returns its own emission and reports how much
-light from **behind** it survives:
+light from **behind** it survives, **per channel** (gas and dust absorb unevenly and
+redden what is behind them):
 
 ```glsl
-vec3 someLayerSky(vec3 dir, float pxPerDir, out float transmittance);
+vec3 someLayerSky(vec3 dir, float pxPerDir, out vec3 transmittance);
+// a volume layer also takes the ray origin, so it has parallax:
+vec3 nebulaSky(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance);
 ```
 
 Layers compose with a single fold, so a compositor never special-cases the base
-(the starfield absorbs nothing and simply writes `1.0`):
+(the starfield absorbs nothing and simply writes `vec3(1.0)`):
 
 ```glsl
 float T;
@@ -62,6 +69,13 @@ vec3 col = vec3(0.0);
 ```sh
 python3 Tools/build_starfield.py            # generate + verify
 python3 Tools/build_starfield.py --check    # verify only
+python3 Tools/build_nebula.py               # generate + verify every nebula variant
+```
+
+Render a still to look at (headless, on the GPU):
+
+```sh
+Tools/preview.sh Space/Nebula/gyroid-clouds.frag /tmp/out.png [uDensity=4 ...]
 ```
 
 GLSL outputs are verified with `glslangValidator`, which checks GLSL without a GPU.

@@ -172,7 +172,7 @@ vec3 starPopulation(vec3 dir, float cells, float pxDir, float count, float seed)
 }
 
 // ===== THE CONTRACT =============================================================
-vec3 starfieldSky(vec3 dir, float pxPerDir, out float transmittance) {
+vec3 starfieldSky(vec3 dir, float pxPerDir, out vec3 transmittance) {
 	vec3 d = normalize(dir);
 
 	float cl  = clusterField(d);
@@ -183,7 +183,7 @@ vec3 starfieldSky(vec3 dir, float pxPerDir, out float transmittance) {
 	col += starPopulation(d, uDensity * P2, pxPerDir, occ * 0.60, 17.0) * W2;
 	col += starPopulation(d, uDensity * P3, pxPerDir, occ * 0.35, 43.0) * W3;
 
-	transmittance = 1.0;  // the starfield is the base layer: it absorbs nothing
+	transmittance = vec3(1.0);  // the starfield is the base layer: it absorbs nothing
 	return col * uBright;
 }
 
@@ -197,6 +197,6 @@ void vertex() {
 }
 
 void fragment() {
-	float transmittance;
+	vec3 transmittance;
 	ALBEDO = starfieldSky(normalize(v_dir), uPxPerDir, transmittance);
 }

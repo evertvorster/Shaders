@@ -169,7 +169,7 @@ vec3 starPopulation(vec3 dir, float cells, float pxDir, float count, float seed)
 }
 
 // ===== THE CONTRACT =============================================================
-vec3 starfieldSky(vec3 dir, float pxPerDir, out float transmittance) {
+vec3 starfieldSky(vec3 dir, float pxPerDir, out vec3 transmittance) {
 	vec3 d = normalize(dir);
 
 	float cl  = clusterField(d);
@@ -180,7 +180,7 @@ vec3 starfieldSky(vec3 dir, float pxPerDir, out float transmittance) {
 	col += starPopulation(d, uDensity * P2, pxPerDir, occ * 0.60, 17.0) * W2;
 	col += starPopulation(d, uDensity * P3, pxPerDir, occ * 0.35, 43.0) * W3;
 
-	transmittance = 1.0;  // the starfield is the base layer: it absorbs nothing
+	transmittance = vec3(1.0);  // the starfield is the base layer: it absorbs nothing
 	return col * uBright;
 }
 
@@ -191,6 +191,6 @@ void main() {
 	// direction units per pixel: 2*tan(fov/2)/height, with fov ~71 degrees
 	float pxPerDir = 1.0 / (1.4 * iResolution.y);
 
-	float transmittance;
+	vec3 transmittance;
 	outColor = vec4(starfieldSky(dir, pxPerDir, transmittance), 1.0);
 }
