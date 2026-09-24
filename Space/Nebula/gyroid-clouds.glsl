@@ -117,9 +117,9 @@ float gyroidFbm(vec3 p) {
 	const int   octaves = GYROID_OCTAVES;
 	const float fbmScale = 1.95;
 	float a = PI / float(octaves);
-	mat3 m3 = fbmScale * mat3(cos(a), sin(a), 0.0,
-	                         -sin(a), cos(a), 0.0,
-	                          0.0,    0.0,    1.0);
+	mat3 m3 = fbmScale * mat3(vec3(cos(a), sin(a), 0.0),
+	                          vec3(-sin(a), cos(a), 0.0),
+	                          vec3(0.0, 0.0, 1.0));
 	float weight = 0.0;
 	float amplitude = 1.0;
 	float frequency = 1.0;
