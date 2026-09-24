@@ -110,8 +110,8 @@
 				<variable type="float" name="uGalArmStrength">
 					<row><value>0.60</value></row>
 				</variable>
-				<variable type="float" name="uGalSteps">
-					<row><value>128.0</value></row>
+				<variable type="float" name="uGalSoftness">
+					<row><value>0.08</value></row>
 				</variable>
 				<variable type="float" name="uGalBright">
 					<row><value>1.00</value></row>

@@ -84,7 +84,7 @@ const float uGalNoiseScale = 0.50;  // [0.05, 2]   size of the turbulent structu
 const float uGalArmCount   = 2.00;  // [1, 6]      number of spiral arms
 const float uGalArmTwist   = 4.00;  // [1, 10]     how tightly the arms wind
 const float uGalArmStrength = 0.60; // [0, 1]      arm contrast
-const float uGalSteps      = 128.0; // [16, 192]   march steps: quality vs speed
+const float uGalSoftness   = 0.08;  // [0.01, 0.5] bounds the grazing-ray column
 const float uGalBright     = 1.00;  // [0, 4]      exposure
 
 // ===== SHARED MATHS =============================================================
@@ -93,7 +93,7 @@ const float uGalBright     = 1.00;  // [0, 4]      exposure
 
 #include "Space/Starfield/starfield.inc.glsl"
 #include "Space/Nebula/gyroid-clouds.inc.glsl"
-#include "Space/GalacticBand/volumetric-galaxy.inc.glsl"
+#include "Space/GalacticBand/analytic-galaxy.inc.glsl"
 
 // ===== THE FOLD =================================================================
 vec3 skyColour(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {

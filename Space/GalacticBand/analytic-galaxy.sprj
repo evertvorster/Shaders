@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <project version="2">
 	<pipeline>
-		<pass name="volumetric-galaxy" type="shader" active="true" patchverts="1">
-			<shader type="vs" path="volumetric-galaxy.vert" entry="main" />
-			<shader type="ps" path="volumetric-galaxy.glsl" entry="main" />
+		<pass name="analytic-galaxy" type="shader" active="true" patchverts="1">
+			<shader type="vs" path="analytic-galaxy.vert" entry="main" />
+			<shader type="ps" path="analytic-galaxy.glsl" entry="main" />
 			<inputlayout>
 				<item value="Position" semantic="POSITION" />
 				<item value="Normal" semantic="NORMAL" />
@@ -56,8 +56,8 @@
 				<variable type="float" name="uGalArmStrength">
 					<row><value>0.60</value></row>
 				</variable>
-				<variable type="float" name="uGalSteps">
-					<row><value>128.0</value></row>
+				<variable type="float" name="uGalSoftness">
+					<row><value>0.08</value></row>
 				</variable>
 				<variable type="float" name="uGalBright">
 					<row><value>1.00</value></row>
@@ -69,9 +69,9 @@
 	<objects />
 	<cameras />
 	<settings>
-		<entry type="property" name="volumetric-galaxy" item="pipe" />
-		<entry type="file" name="volumetric-galaxy" shader="vs" />
-		<entry type="file" name="volumetric-galaxy" shader="ps" />
+		<entry type="property" name="analytic-galaxy" item="pipe" />
+		<entry type="file" name="analytic-galaxy" shader="vs" />
+		<entry type="file" name="analytic-galaxy" shader="ps" />
 		<entry type="camera" fp="false">
 			<distance>3</distance>
 			<pitch>20</pitch>

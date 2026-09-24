@@ -33,7 +33,7 @@ uniform float uGalNoiseScale : hint_range(0.05, 2, 0.01) = 0.50;  // size of the
 uniform float uGalArmCount : hint_range(1, 6, 0.01) = 2.00;  // number of spiral arms
 uniform float uGalArmTwist : hint_range(1, 10, 0.01) = 4.00;  // how tightly the arms wind
 uniform float uGalArmStrength : hint_range(0, 1, 0.01) = 0.60;  // arm contrast
-uniform float uGalSteps : hint_range(16, 192, 1) = 128.0;  // march steps: quality vs speed
+uniform float uGalSoftness : hint_range(0.01, 0.5, 0.001) = 0.08;  // bounds the grazing-ray column
 uniform float uGalBright : hint_range(0, 4, 0.01) = 1.00;  // exposure
 
 uniform vec3  uCamPos = vec3(0.0, 0.0, 0.0);
@@ -528,28 +528,28 @@ vec3 nebulaSky(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
 }
 
 #endif  // GYROID_CLOUDS_GLSLINC
-// volumetric-galaxy.inc.glsl — the Milky Way as a VOLUMETRIC disk we are inside.
+// analytic-galaxy.inc.glsl — the Milky Way as a semi-analytic band.
 //
-// Instead of painting a band on the sky, this marches a ray through a flattened galaxy
-// volume (a "saucer"): an exponential disk plus a central bulge. We sit in the disk, off
-// to one side, so:
+// No ray marching. For an exponential disk the vertical path integral has a closed form:
 //
-//   * looking along the plane -> a long path through the gas -> the band
-//   * looking up/out of the plane -> a short path -> dark sky
-//   * looking toward the core -> the path is densest -> the band is brightest. The
-//     asymmetry is not a mask, it is the geometry.
-//   * a long enough path absorbs (dust), so the far side dims and reddens.
+//     ∫ exp(-|z|/hz) dt  =  2·hz / |dot(dir, pole)|
 //
-// The gas is lit from the inside: emission is proportional to density (unresolved
-// starlight), and fbm makes the surface turbulent.
+// so the column density along a line of sight is one divide, not a hundred samples. That
+// single term is the band: looking along the plane (dot(dir,pole) -> 0) is a long path;
+// looking out of it is a short one. Multiply by the radial falloff at the plane crossing
+// for the core asymmetry, then light it from the inside and let the dust absorb over the
+// same column.
 //
-// Extracted so the sky compositor can include exactly the same code. The contract takes
-// camPos because it is a volume with parallax.
+// Because the structure is AUTHORED rather than integrated, nothing averages away -- and
+// it costs a handful of ops instead of a loop. The raymarched volume (git history) remains
+// the option for flying *into* a nebula; a fixed backdrop does not need it.
+//
+// Extracted so the sky compositor can include exactly the same code.
 //
 // GPL-3.0 (see LICENSE at the repository root).
 
-#ifndef VOLUMETRIC_GALAXY_INC_GLSL
-#define VOLUMETRIC_GALAXY_INC_GLSL
+#ifndef ANALYTIC_GALAXY_INC_GLSL
+#define ANALYTIC_GALAXY_INC_GLSL
 
 // lib/hash.glsl — integer-lattice hashes, shared by every shader.
 //
@@ -607,6 +607,7 @@ float fbm3(vec3 p) {
 
 
 #endif  // LIB_NOISE_GLSL
+// lookAt lives in raymarch; the standalone host uses it.
 // lib/raymarch.glsl — helpers for raymarched volumetric layers.
 //
 // Pure maths with no host assumptions: camera basis, ray/box intersection, phase
@@ -658,19 +659,16 @@ mat3 lookAt(vec3 fwd, vec3 up) {
 #endif  // LIB_RAYMARCH_GLSL
 
 // The disk, in world units. The galactic centre is the world origin.
-#define MW_RADIUS   30.0   // disk radius
 #define MW_HZ        1.2   // disk scale height
 #define MW_HR        8.0   // disk scale length
 #define MW_CORE      3.0   // bulge radius
 #define MW_CORE_HZ   1.6   // bulge scale height
-#define MW_H         5.0   // half-height of the bounding cylinder
 
 vec3 mwPole() {
 	float cp = cos(uGalPitch);
 	return normalize(vec3(sin(uGalPitch) * cos(uGalYaw), cp, sin(uGalPitch) * sin(uGalYaw)));
 }
 
-// Density of the galaxy at a world point. `ax`,`ay` are the in-plane basis vectors.
 float mwFbm(vec3 p, int octaves) {
 	float a = 0.5, s = 0.0, t = 0.0;
 	for (int i = 0; i < 6; i++) {
@@ -683,115 +681,55 @@ float mwFbm(vec3 p, int octaves) {
 	return s / max(t, 1e-5);
 }
 
-float mwDensity(vec3 p, vec3 pole, vec3 ax, vec3 ay) {
-	float z = dot(p, pole);
-	vec3 planar = p - z * pole;
-	float r = length(planar);
-	if (r > MW_RADIUS) return 0.0;
-
-	float disk  = exp(-abs(z) / MW_HZ) * exp(-r / MW_HR);
-	float bulge = exp(-(r * r) / (MW_CORE * MW_CORE)) * exp(-abs(z) / MW_CORE_HZ);
-	float d = disk + 0.7 * bulge;
-
-	// Spiral arms: a logarithmic spiral density pattern in the plane. This is the
-	// large-scale structure -- "we are on the side of one of the arms".
-	float phi = atan(dot(planar, ay), dot(planar, ax));
-	float twist = log(max(r, 1.0)) * uGalArmTwist;
-	float arms = 0.5 + 0.5 * cos(uGalArmCount * (phi - twist));
-	arms = pow(arms, 3.0);
-	d *= mix(1.0, 0.10 + 1.90 * arms, uGalArmStrength);
-
-	// Turbulence: a CONTRAST-STRETCHED fbm. A smooth field just averages out over the
-	// ~100 samples of the ray; pushing it through a smoothstep makes clumps and voids.
-	float n = mwFbm(p * uGalNoiseScale + 11.0, 5);
-	n = smoothstep(0.30, 0.80, n);
-	d *= mix(1.0, n, uGalTurb);
-
-	return d;
-}
-
-// Span of t for which the ray is inside a finite cylinder (radius `R`, half-height `H`)
-// centred at the origin with axis `pole`. Works whether the camera is inside it (looking
-// out through the band) or outside it (looking at the galaxy as a distant object).
-// No overlap if t0 > t1.
-vec2 mwRaySpan(vec3 ro, vec3 rd, vec3 pole, float R, float H) {
-	vec3 op = ro - dot(ro, pole) * pole;
-	vec3 dp = rd - dot(rd, pole) * pole;
-	float t0 = -1e20, t1 = 1e20;
-
-	// the cylinder wall
-	float a = dot(dp, dp);
-	float b = 2.0 * dot(op, dp);
-	float c = dot(op, op) - R * R;
-	if (a > 1e-9) {
-		float disc = b * b - 4.0 * a * c;
-		if (disc <= 0.0) return vec2(1.0, 0.0);
-		float sq = sqrt(disc);
-		t0 = max(t0, (-b - sq) / (2.0 * a));
-		t1 = min(t1, (-b + sq) / (2.0 * a));
-	} else if (c > 0.0) {
-		return vec2(1.0, 0.0);
-	}
-
-	// the slab in z
-	float z0 = dot(ro, pole);
-	float dz = dot(rd, pole);
-	if (abs(dz) > 1e-9) {
-		float ta = (-H - z0) / dz;
-		float tb = ( H - z0) / dz;
-		t0 = max(t0, min(ta, tb));
-		t1 = min(t1, max(ta, tb));
-	} else if (abs(z0) > H) {
-		return vec2(1.0, 0.0);
-	}
-	return vec2(t0, t1);
-}
-
 vec3 galacticBandSky(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
 	vec3 d = normalize(dir);
 	vec3 pole = mwPole();
 
-	vec2 span = mwRaySpan(camPos, d, pole, MW_RADIUS, MW_H);
-	float tStart = max(0.0, span.x);
-	float tEnd = span.y;
-	if (tEnd <= tStart) { transmittance = vec3(1.0); return vec3(0.0); }
-
-	// in-plane basis, for the spiral arms
 	vec3 up = abs(pole.y) < 0.99 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
 	vec3 ax = normalize(cross(pole, up));
 	vec3 ay = cross(pole, ax);
 
-	int steps = int(uGalSteps);
-	float dt = (tEnd - tStart) / float(steps);
+	float z0 = dot(camPos, pole);
+	float dz = dot(d, pole);
+	vec3 q0 = camPos - z0 * pole;     // planar origin
+	vec3 qd = d - dz * pole;          // planar direction
 
+	// The representative point: the plane crossing if the ray crosses, otherwise the
+	// in-plane closest approach (grazing rays, which is what makes the band).
+	float t = (abs(dz) > 1e-4) ? (-z0 / dz) : (-dot(q0, qd) / max(dot(qd, qd), 1e-6));
+	vec3 q = q0 + t * qd;
+	float r = length(q);
+
+	// Slab column (bounded by uGalSoftness so a grazing ray is bright, not infinite),
+	// times the radial falloff at the crossing; plus a rounder bulge term.
+	float vertical = 2.0 * MW_HZ / (abs(dz) + uGalSoftness);
+	float column = vertical * exp(-r / MW_HR)
+	             + 0.7 * (MW_CORE_HZ / (abs(dz) + uGalSoftness))
+	                   * exp(-(r * r) / (MW_CORE * MW_CORE));
+
+	// Spiral arms and turbulence, authored ON the column: coherent, nothing to average.
+	float phi = atan(dot(q, ay), dot(q, ax));
+	float twist = log(max(r, 1.0)) * uGalArmTwist;
+	float arms = pow(0.5 + 0.5 * cos(uGalArmCount * (phi - twist)), 3.0);
+	column *= mix(1.0, 0.10 + 1.90 * arms, uGalArmStrength);
+
+	float n = smoothstep(0.30, 0.80, mwFbm(q * uGalNoiseScale + 11.0, 5));
+	column *= mix(1.0, n, uGalTurb);
+
+	// Lit from the inside: emission follows the column. Dust absorbs over the same path,
+	// so the source saturates where the path is long and the band is opaque.
 	vec3 dustAbs = vec3(0.72, 0.84, 1.0);
-	vec3 col = vec3(0.0);
-	vec3 T = vec3(1.0);
+	vec3 T = exp(-dustAbs * uGalDust * column);
 
-	for (int i = 0; i < steps; i++) {
-		vec3 p = camPos + (tStart + (float(i) + 0.5) * dt) * d;
-		float dens = mwDensity(p, pole, ax, ay);
-		if (dens > 0.0) {
-			float r = length(p - dot(p, pole) * pole);
-			float coreness = exp(-r / MW_CORE);
-			// warm where the bulge is, cooler out in the disk
-			vec3 gasColour = mix(vec3(0.72, 0.82, 1.0), vec3(1.00, 0.90, 0.72), coreness);
+	float coreness = exp(-r / MW_CORE);
+	vec3 emitColour = mix(vec3(0.72, 0.82, 1.0), vec3(1.00, 0.90, 0.72), coreness);
 
-			vec3 emission = gasColour * dens * uGalEmission;
-			vec3 sigma = dustAbs * uGalDust * dens;
-			vec3 tr = exp(-sigma * dt);
-
-			col += T * emission * dt;
-			T *= tr;
-			if (T.r < 0.003 && T.g < 0.003 && T.b < 0.003) break;
-		}
-	}
-
+	vec3 col = emitColour * uGalEmission * (1.0 - T);
 	transmittance = T;
 	return col * uGalBright;
 }
 
-#endif  // VOLUMETRIC_GALAXY_INC_GLSL
+#endif  // ANALYTIC_GALAXY_INC_GLSL
 
 // ===== THE FOLD =================================================================
 vec3 skyColour(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
