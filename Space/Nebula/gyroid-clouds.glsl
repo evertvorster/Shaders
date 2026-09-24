@@ -17,15 +17,28 @@ uniform vec3 uCamPos;
 // The knob values live in the .sprj, not here: GLSL uniforms cannot have initialisers,
 // which is why SHADERed shows them as variables you can edit (right-click the pass ->
 // Variables, then pin them with +).
-uniform float uDensity;
-uniform float uHaze;
-uniform float uStructure;
-uniform float uBright;
-uniform float uSunAngle;
-uniform float uSunHeight;
-uniform float uLocalStars;
-uniform float uNoiseScale;
-uniform float uSteps;
+uniform float uNebDensity;
+uniform float uNebHaze;
+uniform float uNebStructure;
+uniform float uNebBright;
+uniform float uNebSunAngle;
+uniform float uNebSunHeight;
+uniform float uNebLocalStars;
+uniform float uNebNoiseScale;
+uniform float uNebSteps;
+
+// ===== PHYSICS ==================================================================
+// This variant's constants, shared maths and contract live in gyroid-clouds.glslinc
+// (below), so the sky compositor can include the identical code. Nothing to see here.
+
+// ===== SHARED MATHS ===========================================================
+// gyroid-clouds.inc.glsl — this variant's constants, shared maths and contract,
+// extracted so other shaders (the sky compositor) can include exactly the
+// same code. Included by gyroid-clouds.frag and Space/Sky/sky.frag.
+// GPL-3.0 (see LICENSE at the repository root).
+
+#ifndef GYROID_CLOUDS_GLSLINC
+#define GYROID_CLOUDS_GLSLINC
 
 // ===== PHYSICS ==================================================================
 // The gas, the sun and the box. Constants, not sliders.
@@ -53,6 +66,10 @@ const float SUN_POWER     = 200.0;
 //
 // GPL-3.0 (see LICENSE at the repository root).
 
+
+#ifndef LIB_HASH_GLSL
+#define LIB_HASH_GLSL
+
 float hash13(vec3 p3) {
 	p3 = fract(p3 * vec3(0.1031, 0.1030, 0.0973));
 	p3 += dot(p3, p3.yxz + 33.33);
@@ -61,12 +78,19 @@ float hash13(vec3 p3) {
 vec3 hash33(vec3 p3) {
 	return vec3(hash13(p3), hash13(p3 + 19.19), hash13(p3 + 41.77));
 }
+
+
+#endif  // LIB_HASH_GLSL
 // lib/raymarch.glsl — helpers for raymarched volumetric layers.
 //
 // Pure maths with no host assumptions: camera basis, ray/box intersection, phase
 // functions, and a texture-free dither. Included (inlined) by Tools/build_*.glsl.
 //
 // GPL-3.0 (see LICENSE at the repository root).
+
+
+#ifndef LIB_RAYMARCH_GLSL
+#define LIB_RAYMARCH_GLSL
 
 #ifndef PI
 #define PI 3.141592653589793
@@ -103,6 +127,9 @@ mat3 lookAt(vec3 fwd, vec3 up) {
 	vec3 yaxis = cross(xaxis, zaxis);
 	return mat3(xaxis, yaxis, -zaxis);
 }
+
+
+#endif  // LIB_RAYMARCH_GLSL
 
 //-------------------------------- Shape --------------------------------
 
@@ -143,11 +170,11 @@ float cloudDensity(vec3 p) {
 	    p.z < -VOLUME_EXTENT || p.z > VOLUME_EXTENT) {
 		return 0.0;
 	}
-	float n = gyroidFbm(uNoiseScale * p);
+	float n = gyroidFbm(uNebNoiseScale * p);
 	float r = length(p);
-	float structure = smoothstep(3.0, 5.0, r) * smoothstep(0.05, 0.10, n) * uStructure;
-	float haze      = smoothstep(2.0, 10.0, r) * smoothstep(0.02, 0.50, n) * uHaze;
-	return uDensity * (3e-4 + 0.5 * haze + 0.75 * structure);
+	float structure = smoothstep(3.0, 5.0, r) * smoothstep(0.05, 0.10, n) * uNebStructure;
+	float haze      = smoothstep(2.0, 10.0, r) * smoothstep(0.02, 0.50, n) * uNebHaze;
+	return uNebDensity * (3e-4 + 0.5 * haze + 0.75 * structure);
 }
 
 //-------------------------------- Local stars --------------------------------
@@ -214,7 +241,7 @@ vec3 lightRay(vec3 p, float mu, vec3 sunDirection) {
 	if (hit.x < hit.y && hit.y > 0.0) {
 		lightRayDistance = hit.y - max(hit.x, 0.0);
 	}
-	int lsteps = max(3, int(uSteps * 0.25));
+	int lsteps = max(3, int(uNebSteps * 0.25));
 	float stepL = lightRayDistance / float(lsteps);
 	float lightRayDensity = 0.0;
 	for (int j = 0; j < lsteps; j++) {
@@ -244,7 +271,7 @@ vec3 mainRay(vec3 org, vec3 dir, vec3 sunDirection, out vec3 totalTransmittance,
 	float distToEnd   = hit.y;
 	if (!(distToEnd > distToStart) || distToEnd <= 0.0) return colour;
 
-	int steps = int(uSteps);
+	int steps = int(uNebSteps);
 	float stepS = (distToEnd - distToStart) / float(steps);
 	distToStart += stepS * offset;
 
@@ -263,8 +290,8 @@ vec3 mainRay(vec3 org, vec3 dir, vec3 sunDirection, out vec3 totalTransmittance,
 			// Local starlight, scaled by how much gas is here (so stars brighten the
 			// clouds they sit in, not empty space).
 			vec3 ambient = vec3(0.0);
-			if (uLocalStars > 0.0) {
-				ambient = uLocalStars * localStars(p);
+			if (uNebLocalStars > 0.0) {
+				ambient = uNebLocalStars * localStars(p);
 				ambient *= smoothstep(1e-3, 2e-3, density);
 			}
 
@@ -291,10 +318,12 @@ vec3 mainRay(vec3 org, vec3 dir, vec3 sunDirection, out vec3 totalTransmittance,
 // ===== THE CONTRACT =============================================================
 vec3 nebulaSky(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
 	vec3 d = normalize(dir);
-	vec3 sunDirection = normalize(vec3(cos(uSunAngle), uSunHeight, sin(uSunAngle)));
+	vec3 sunDirection = normalize(vec3(cos(uNebSunAngle), uNebSunHeight, sin(uNebSunAngle)));
 	vec3 colour = mainRay(camPos, d, sunDirection, transmittance, 0.0);
-	return colour * uBright;
+	return colour * uNebBright;
 }
+
+#endif  // GYROID_CLOUDS_GLSLINC
 
 vec3 aces(vec3 x) {
 	return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0);

@@ -10,15 +10,28 @@
 shader_type spatial;
 render_mode cull_front, unshaded, depth_draw_never, depth_test_disabled;
 
-uniform float uDensity : hint_range(5, 400, 1) = 60.0;  // field density: star count scales with its SQUARE
-uniform float uCluster : hint_range(0, 1, 0.01) = 0.00;  // clumping; 0 = perfectly uniform field
-uniform float uClusterScale : hint_range(0.5, 20, 0.1) = 4.00;  // clump size: lower = bigger clumps
-uniform float uBright : hint_range(0, 4, 0.01) = 1.00;  // exposure
-uniform float uGlow : hint_range(0, 3, 0.01) = 1.00;  // glare around the brightest stars; 0 = none
-uniform float uCount : hint_range(0.05, 1, 0.001) = 0.60;  // cell occupancy: more stars, same spacing
+uniform float uStarDensity : hint_range(5, 400, 1) = 60.0;  // field density: star count scales with its SQUARE
+uniform float uStarCluster : hint_range(0, 1, 0.01) = 0.00;  // clumping; 0 = perfectly uniform field
+uniform float uStarClusterScale : hint_range(0.5, 20, 0.1) = 4.00;  // clump size: lower = bigger clumps
+uniform float uStarBright : hint_range(0, 4, 0.01) = 1.00;  // exposure
+uniform float uStarGlow : hint_range(0, 3, 0.01) = 1.00;  // glare around the brightest stars; 0 = none
+uniform float uStarCount : hint_range(0.05, 1, 0.001) = 0.60;  // cell occupancy: more stars, same spacing
 
 // Host plumbing: set by the scene, not a user knob.
 uniform float uPxPerDir : hint_range(0.00005, 0.02, 0.00005) = 0.0013;
+
+// ===== PHYSICS ==================================================================
+// The starfield's constants, shared maths and contract live in starfield.glslinc
+// (below), so the sky compositor can include the identical code. Nothing to see here.
+
+// ===== SHARED MATHS ===========================================================
+// starfield.inc.glsl — the starfield's constants, shared maths and contract,
+// extracted so other shaders (the sky compositor) can include exactly the
+// same code. Included by starfield.frag and Space/Sky/sky.frag.
+// GPL-3.0 (see LICENSE at the repository root).
+
+#ifndef STARFIELD_GLSLINC
+#define STARFIELD_GLSLINC
 
 // ===== PHYSICS ==================================================================
 // Constants: these describe stars, not taste. They are the same in every host, so
@@ -48,6 +61,10 @@ const float W3         = 0.55;
 //
 // GPL-3.0 (see LICENSE at the repository root).
 
+
+#ifndef LIB_HASH_GLSL
+#define LIB_HASH_GLSL
+
 float hash13(vec3 p3) {
 	p3 = fract(p3 * vec3(0.1031, 0.1030, 0.0973));
 	p3 += dot(p3, p3.yxz + 33.33);
@@ -56,6 +73,9 @@ float hash13(vec3 p3) {
 vec3 hash33(vec3 p3) {
 	return vec3(hash13(p3), hash13(p3 + 19.19), hash13(p3 + 41.77));
 }
+
+
+#endif  // LIB_HASH_GLSL
 // lib/noise.glsl — value noise and fbm, built on lib/hash.glsl.
 //
 // Requires hash13() to be included first.
@@ -63,6 +83,10 @@ vec3 hash33(vec3 p3) {
 // GPL-3.0 (see LICENSE at the repository root).
 
 // low-frequency value noise (once per pixel is plenty at these frequencies)
+
+#ifndef LIB_NOISE_GLSL
+#define LIB_NOISE_GLSL
+
 float vnoise(vec3 p) {
 	vec3 i = floor(p), f = fract(p);
 	f = f * f * (3.0 - 2.0 * f);
@@ -82,6 +106,9 @@ float fbm3(vec3 p) {
 	for (int i = 0; i < 3; i++) { s += a * vnoise(p); t += a; p *= 2.03; a *= 0.5; }
 	return s / t;
 }
+
+
+#endif  // LIB_NOISE_GLSL
 
 // Star colour by TEMPERATURE, cool -> hot: ~2500 K (deep orange) through sun-like to
 // ~30000 K (blue). Real stars are overwhelmingly cool dwarfs, but the ones that stand
@@ -104,8 +131,8 @@ vec3 starColour(float t) {
 
 // clusterField: the star-specific wrapper on the shared fbm3 (lib/noise.glsl).
 float clusterField(vec3 dir) {
-	if (uCluster <= 0.0) return 0.0;
-	return (fbm3(dir * uClusterScale + 3.0) - 0.5) * 2.0;
+	if (uStarCluster <= 0.0) return 0.0;
+	return (fbm3(dir * uStarClusterScale + 3.0) - 0.5) * 2.0;
 }
 
 // One population of stars.
@@ -148,10 +175,10 @@ vec3 starPopulation(vec3 dir, float cells, float pxDir, float count, float seed)
 				// GLARE. A bright point spreads into a disc by scattering in the eye and
 				// atmosphere -- real optics, not an effect. Weighted by a steep power of
 				// the magnitude so only the few brightest stars get it.
-				if (uGlow > 0.0) {
+				if (uStarGlow > 0.0) {
 					float th   = length(p - P) / (rr * GLOW_SCALE);
 					float halo = max(0.0, 1.0 - th);
-					b += uGlow * GLOW_GAIN * pow(halo, 5.0) * pow(m, GLOW_POW);
+					b += uStarGlow * GLOW_GAIN * pow(halo, 5.0) * pow(m, GLOW_POW);
 				}
 
 				// temperature, biased hotter for the brighter stars
@@ -176,16 +203,18 @@ vec3 starfieldSky(vec3 dir, float pxPerDir, out vec3 transmittance) {
 	vec3 d = normalize(dir);
 
 	float cl  = clusterField(d);
-	float occ = clamp(uCount * (1.0 + uCluster * cl), 0.05, 1.0);
+	float occ = clamp(uStarCount * (1.0 + uStarCluster * cl), 0.05, 1.0);
 
 	vec3 col = vec3(0.0);
-	col += starPopulation(d, uDensity,      pxPerDir, occ,        0.0) * W1;
-	col += starPopulation(d, uDensity * P2, pxPerDir, occ * 0.60, 17.0) * W2;
-	col += starPopulation(d, uDensity * P3, pxPerDir, occ * 0.35, 43.0) * W3;
+	col += starPopulation(d, uStarDensity,      pxPerDir, occ,        0.0) * W1;
+	col += starPopulation(d, uStarDensity * P2, pxPerDir, occ * 0.60, 17.0) * W2;
+	col += starPopulation(d, uStarDensity * P3, pxPerDir, occ * 0.35, 43.0) * W3;
 
 	transmittance = vec3(1.0);  // the starfield is the base layer: it absorbs nothing
-	return col * uBright;
+	return col * uStarBright;
 }
+
+#endif  // STARFIELD_GLSLINC
 
 varying vec3 v_dir;
 

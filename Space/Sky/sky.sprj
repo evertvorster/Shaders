@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <project version="2">
 	<pipeline>
-		<pass name="Starfield" type="shader" active="true" patchverts="1">
-			<shader type="vs" path="starfield.vert" entry="main" />
-			<shader type="ps" path="starfield.glsl" entry="main" />
+		<pass name="sky" type="shader" active="true" patchverts="1">
+			<shader type="vs" path="sky.vert" entry="main" />
+			<shader type="ps" path="sky.glsl" entry="main" />
 			<inputlayout>
 				<item value="Position" semantic="POSITION" />
 				<item value="Normal" semantic="NORMAL" />
@@ -26,6 +26,15 @@
 				<variable type="float2" name="iResolution" system="ViewportSize" />
 				<variable type="float2" name="iMouse" system="MousePosition" />
 				<variable type="float" name="iTime" system="Time" />
+				<variable type="float4x4" name="uView" system="View" />
+				<variable type="float4x4" name="uProj" system="Projection" />
+				<variable type="float3" name="uCamPos" system="CameraPosition3" />
+				<variable type="float" name="uFadeNebula">
+					<row><value>1.00</value></row>
+				</variable>
+				<variable type="float" name="uFadeStars">
+					<row><value>1.00</value></row>
+				</variable>
 				<variable type="float" name="uStarDensity">
 					<row><value>60.0</value></row>
 				</variable>
@@ -44,6 +53,33 @@
 				<variable type="float" name="uStarCount">
 					<row><value>0.60</value></row>
 				</variable>
+				<variable type="float" name="uNebDensity">
+					<row><value>1.50</value></row>
+				</variable>
+				<variable type="float" name="uNebHaze">
+					<row><value>0.40</value></row>
+				</variable>
+				<variable type="float" name="uNebStructure">
+					<row><value>1.50</value></row>
+				</variable>
+				<variable type="float" name="uNebBright">
+					<row><value>1.00</value></row>
+				</variable>
+				<variable type="float" name="uNebSunAngle">
+					<row><value>2.00</value></row>
+				</variable>
+				<variable type="float" name="uNebSunHeight">
+					<row><value>0.50</value></row>
+				</variable>
+				<variable type="float" name="uNebLocalStars">
+					<row><value>1.00</value></row>
+				</variable>
+				<variable type="float" name="uNebNoiseScale">
+					<row><value>1.00</value></row>
+				</variable>
+				<variable type="float" name="uNebSteps">
+					<row><value>16.0</value></row>
+				</variable>
 			</variables>
 			<macros />
 		</pass>
@@ -51,13 +87,13 @@
 	<objects />
 	<cameras />
 	<settings>
-		<entry type="property" name="Starfield" item="pipe" />
-		<entry type="file" name="Starfield" shader="vs" />
-		<entry type="file" name="Starfield" shader="ps" />
+		<entry type="property" name="sky" item="pipe" />
+		<entry type="file" name="sky" shader="vs" />
+		<entry type="file" name="sky" shader="ps" />
 		<entry type="camera" fp="false">
-			<distance>19</distance>
-			<pitch>89</pitch>
-			<yaw>3</yaw>
+			<distance>3</distance>
+			<pitch>20</pitch>
+			<yaw>45</yaw>
 			<roll>360</roll>
 		</entry>
 		<entry type="clearcolor" r="0" g="0" b="0" a="1" />

@@ -5,6 +5,10 @@
 //
 // GPL-3.0 (see LICENSE at the repository root).
 
+
+#ifndef LIB_RAYMARCH_GLSL
+#define LIB_RAYMARCH_GLSL
+
 #ifndef PI
 #define PI 3.141592653589793
 #endif
@@ -40,3 +44,6 @@ mat3 lookAt(vec3 fwd, vec3 up) {
 	vec3 yaxis = cross(xaxis, zaxis);
 	return mat3(xaxis, yaxis, -zaxis);
 }
+
+
+#endif  // LIB_RAYMARCH_GLSL

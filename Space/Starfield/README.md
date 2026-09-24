@@ -83,12 +83,12 @@ uniforms in the generated hosts:
 
 | variable | default | effect |
 |---|---|---|
-| `uDensity` | 60 | field density. Star count scales with its **square** |
-| `uCluster` | 0 | clumping. 0 = perfectly uniform field |
-| `uClusterScale` | 4 | clump size; lower = bigger clumps |
-| `uBright` | 1 | exposure |
-| `uGlow` | 1 | glare on the brightest stars; 0 = none |
-| `uCount` | 0.6 | cell occupancy: more stars at the *same* spacing |
+| `uStarDensity` | 60 | field density. Star count scales with its **square** |
+| `uStarCluster` | 0 | clumping. 0 = perfectly uniform field |
+| `uStarClusterScale` | 4 | clump size; lower = bigger clumps |
+| `uStarBright` | 1 | exposure |
+| `uStarGlow` | 1 | glare on the brightest stars; 0 = none |
+| `uStarCount` | 0.6 | cell occupancy: more stars at the *same* spacing |
 
 ## Running it
 

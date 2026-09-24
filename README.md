@@ -10,6 +10,7 @@ script in `Tools/` generates the per-host variants.
 Space/
   Starfield/          procedural star base layer (source + generated formats)
   Nebula/             volumetric emission nebulae, one file per variant
+  Sky/                the compositor: the ordered stack, folds the layers together
 lib/
   hash.glsl           shared hashes (hash13, hash33)
   noise.glsl          shared value noise / fbm
@@ -17,8 +18,14 @@ lib/
 Tools/
   build_starfield.py  generates every format from Space/Starfield/starfield.frag
   build_nebula.py     generates every format for each Space/Nebula/*.frag
+  build_sky.py        generates every format from Space/Sky/sky.frag
   preview.sh          render one frame headlessly to a PNG (for looking at work)
 ```
+
+A layer's reusable body (constants + maths + its contract) lives in
+`Space/<Layer>/<name>.inc.glsl`, so other shaders — chiefly the compositor — can include
+it. The builder inlines those includes; they end in `.glsl` because glslviewer only
+resolves includes with a recognised shader extension.
 
 ## Why one source, several formats
 

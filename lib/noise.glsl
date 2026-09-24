@@ -5,6 +5,10 @@
 // GPL-3.0 (see LICENSE at the repository root).
 
 // low-frequency value noise (once per pixel is plenty at these frequencies)
+
+#ifndef LIB_NOISE_GLSL
+#define LIB_NOISE_GLSL
+
 float vnoise(vec3 p) {
 	vec3 i = floor(p), f = fract(p);
 	f = f * f * (3.0 - 2.0 * f);
@@ -24,3 +28,6 @@ float fbm3(vec3 p) {
 	for (int i = 0; i < 3; i++) { s += a * vnoise(p); t += a; p *= 2.03; a *= 0.5; }
 	return s / t;
 }
+
+
+#endif  // LIB_NOISE_GLSL

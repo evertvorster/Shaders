@@ -6,6 +6,10 @@
 //
 // GPL-3.0 (see LICENSE at the repository root).
 
+
+#ifndef LIB_HASH_GLSL
+#define LIB_HASH_GLSL
+
 float hash13(vec3 p3) {
 	p3 = fract(p3 * vec3(0.1031, 0.1030, 0.0973));
 	p3 += dot(p3, p3.yxz + 33.33);
@@ -14,3 +18,6 @@ float hash13(vec3 p3) {
 vec3 hash33(vec3 p3) {
 	return vec3(hash13(p3), hash13(p3 + 19.19), hash13(p3 + 41.77));
 }
+
+
+#endif  // LIB_HASH_GLSL

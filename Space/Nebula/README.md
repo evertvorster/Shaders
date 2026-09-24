@@ -52,14 +52,14 @@ col += starfieldSky(dir, ppd, T);
 
 | variable | default | effect |
 |---|---|---|
-| `uDensity` | 1.5 | overall gas density (optical depth) |
-| `uHaze` | 0.4 | soft haze filling the volume |
-| `uStructure` | 1.5 | filamentary shell around the cavity |
-| `uNoiseScale` | 1.0 | size of the cloud detail; higher = finer |
-| `uBright` | 1.0 | exposure |
-| `uSunAngle` / `uSunHeight` | 2.0 / 0.5 | where the sun sits |
-| `uLocalStars` | 1.0 | stars embedded in the gas, lighting it from within |
-| `uSteps` | 16 | march steps: quality vs speed |
+| `uNebDensity` | 1.5 | overall gas density (optical depth) |
+| `uNebHaze` | 0.4 | soft haze filling the volume |
+| `uNebStructure` | 1.5 | filamentary shell around the cavity |
+| `uNebNoiseScale` | 1.0 | size of the cloud detail; higher = finer |
+| `uNebBright` | 1.0 | exposure |
+| `uNebSunAngle` / `uNebSunHeight` | 2.0 / 0.5 | where the sun sits |
+| `uNebLocalStars` | 1.0 | stars embedded in the gas, lighting it from within |
+| `uNebSteps` | 16 | march steps: quality vs speed |
 
 ## Running it
 
@@ -77,16 +77,16 @@ godot-mono --path ~/Software/Projects/vs05-godot-shader-lab res://nebula_lab.tsc
 Headless still, for looking at work without a window:
 
 ```sh
-Tools/preview.sh Space/Nebula/gyroid-clouds.frag /tmp/out.png [uDensity=8 ...]
+Tools/preview.sh Space/Nebula/gyroid-clouds.frag /tmp/out.png [uNebDensity=8 ...]
 ```
 
 ## What we learned
 
-- **`uSteps` barely changes the look.** The density field is smooth and the medium goes
+- **`uNebSteps` barely changes the look.** The density field is smooth and the medium goes
   optically thick quickly (haze floor + early-out), so the integral converges in a
   handful of steps. Keep it low (10–16) — more steps buy cost, not detail.
 - Consequently it reads as **thick clouds**, not fine filaments. For more structure:
-  `uNoiseScale` up, `uStructure` up, `uHaze` → 0.
+  `uNebNoiseScale` up, `uNebStructure` up, `uNebHaze` → 0.
 - **Godot is stricter than desktop GLSL**, and the HOST section is replaced per host:
   - `mat3` must be built from three `vec3` columns (no 9-scalar constructor).
   - helpers the host `main` needs (`aces`) must be emitted by the builder — the source
