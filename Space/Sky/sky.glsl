@@ -14,6 +14,7 @@ uniform vec3 uCamPos;
 
 uniform float uFadeNebula;
 uniform float uFadeStars;
+uniform float uFadeGalaxy;
 uniform float uStarDensity;
 uniform float uStarCluster;
 uniform float uStarClusterScale;
@@ -29,6 +30,19 @@ uniform float uNebSunHeight;
 uniform float uNebLocalStars;
 uniform float uNebNoiseScale;
 uniform float uNebSteps;
+uniform float uGalPitch;
+uniform float uGalYaw;
+uniform float uGalCoreAngle;
+uniform float uGalWidth;
+uniform float uGalCoreSize;
+uniform float uGalCore;
+uniform float uGalBand;
+uniform float uGalStarClouds;
+uniform float uGalNoiseScale;
+uniform float uGalRiftOffset;
+uniform float uGalRiftWidth;
+uniform float uGalDust;
+uniform float uGalBright;
 
 // ===== PHYSICS ==================================================================
 // The compositor has no physics of its own; the layers bring theirs via their includes.
@@ -519,6 +533,195 @@ vec3 nebulaSky(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
 }
 
 #endif  // GYROID_CLOUDS_GLSLINC
+// fbm-milkyway.inc.glsl — the Milky Way band as a direction-only background layer.
+//
+// We are INSIDE the galaxy, so the band is not symmetric: it is brighter toward the
+// galactic core, thinner and dimmer toward the anticenter, and cut by a dust rift just
+// off the midplane. The masks below build that; the texture is value-noise fbm, which is
+// far cheaper than the scattered-sphere primitives the reference used.
+//
+// Extracted so the sky compositor can include exactly the same code. Included by
+// fbm-milkyway.frag and Space/Sky/sky.frag.
+//
+// GPL-3.0 (see LICENSE at the repository root).
+
+#ifndef FBM_MILKYWAY_INC_GLSL
+#define FBM_MILKYWAY_INC_GLSL
+
+// lib/hash.glsl — integer-lattice hashes, shared by every shader.
+//
+// Canonical sources keep `#include "lib/hash.glsl"` (repo-root-relative) and run in
+// glslviewer with `-I <repo root>`. The builders inline the include, so generated
+// per-host outputs stay self-contained.
+//
+// GPL-3.0 (see LICENSE at the repository root).
+
+
+#ifndef LIB_HASH_GLSL
+#define LIB_HASH_GLSL
+
+float hash13(vec3 p3) {
+	p3 = fract(p3 * vec3(0.1031, 0.1030, 0.0973));
+	p3 += dot(p3, p3.yxz + 33.33);
+	return fract((p3.x + p3.y) * p3.z);
+}
+vec3 hash33(vec3 p3) {
+	return vec3(hash13(p3), hash13(p3 + 19.19), hash13(p3 + 41.77));
+}
+
+
+#endif  // LIB_HASH_GLSL
+// lib/noise.glsl — value noise and fbm, built on lib/hash.glsl.
+//
+// Requires hash13() to be included first.
+//
+// GPL-3.0 (see LICENSE at the repository root).
+
+// low-frequency value noise (once per pixel is plenty at these frequencies)
+
+#ifndef LIB_NOISE_GLSL
+#define LIB_NOISE_GLSL
+
+float vnoise(vec3 p) {
+	vec3 i = floor(p), f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	float n = 0.0;
+	for (int z = 0; z < 2; z++)
+	for (int y = 0; y < 2; y++)
+	for (int x = 0; x < 2; x++) {
+		vec3 o = vec3(float(x), float(y), float(z));
+		n += hash13(i + o) * (mix(1.0 - f.x, f.x, o.x)
+		                    * mix(1.0 - f.y, f.y, o.y)
+		                    * mix(1.0 - f.z, f.z, o.z));
+	}
+	return n;
+}
+float fbm3(vec3 p) {
+	float a = 0.5, s = 0.0, t = 0.0;
+	for (int i = 0; i < 3; i++) { s += a * vnoise(p); t += a; p *= 2.03; a *= 0.5; }
+	return s / t;
+}
+
+
+#endif  // LIB_NOISE_GLSL
+// lib/raymarch.glsl — helpers for raymarched volumetric layers.
+//
+// Pure maths with no host assumptions: camera basis, ray/box intersection, phase
+// functions, and a texture-free dither. Included (inlined) by Tools/build_*.glsl.
+//
+// GPL-3.0 (see LICENSE at the repository root).
+
+
+#ifndef LIB_RAYMARCH_GLSL
+#define LIB_RAYMARCH_GLSL
+
+#ifndef PI
+#define PI 3.141592653589793
+#endif
+
+// Slab-method ray/AABB intersection (DomNomNom). Returns (tNear, tFar) in ray units;
+// there is no hit when tNear > tFar.
+vec2 intersectAABB(vec3 ro, vec3 rd, vec3 bmin, vec3 bmax) {
+	vec3 tMin = (bmin - ro) / rd;
+	vec3 tMax = (bmax - ro) / rd;
+	vec3 t1 = min(tMin, tMax);
+	vec3 t2 = max(tMin, tMax);
+	return vec2(max(max(t1.x, t1.y), t1.z), min(min(t2.x, t2.y), t2.z));
+}
+
+// Henyey-Greenstein phase function. g in (-1, 1): negative scatters back, positive
+// forward. mu is the cosine between the view ray and the light direction.
+float hgPhase(float g, float cosTheta) {
+	return (1.0 / (4.0 * PI)) * ((1.0 - g * g) / pow(1.0 + g * g - 2.0 * g * cosTheta, 1.5));
+}
+
+// Interleaved gradient noise: a cheap per-pixel dither, used to offset the first ray
+// step so the marching does not band. No blue-noise texture needed, so it works in
+// every host (SHADERed, glslviewer, Godot).
+float ign(vec2 fragCoord) {
+	return fract(52.9829189 * fract(dot(fragCoord, vec2(0.06711056, 0.00583715))));
+}
+
+// Camera basis: columns are right, up, -forward, so a view-space ray (forward is -Z)
+// maps into world space. `fwd` is the direction the camera looks.
+mat3 lookAt(vec3 fwd, vec3 up) {
+	vec3 zaxis = normalize(fwd);
+	vec3 xaxis = normalize(cross(zaxis, up));
+	vec3 yaxis = cross(xaxis, zaxis);
+	return mat3(xaxis, yaxis, -zaxis);
+}
+
+
+#endif  // LIB_RAYMARCH_GLSL
+
+// value-noise fbm with a variable octave count (for the band's cloud texture)
+float mwFbm(vec3 p, float octaves) {
+	float a = 0.5, s = 0.0, t = 0.0;
+	for (int i = 0; i < 5; i++) {
+		if (float(i) >= octaves) break;
+		s += a * vnoise(p);
+		t += a;
+		p *= 2.03;
+		a *= 0.5;
+	}
+	return s / max(t, 1e-5);
+}
+
+// The galactic frame from the knobs: `pole` is the band normal (the plane is where
+// dot(dir, pole) == 0), and `coreDir` is where the bright core sits in that plane.
+vec3 mwGalacticFrame(out vec3 coreDir) {
+	float cp = cos(uGalPitch);
+	vec3 pole = normalize(vec3(sin(uGalPitch) * cos(uGalYaw), cp, sin(uGalPitch) * sin(uGalYaw)));
+	vec3 up = abs(pole.y) < 0.99 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
+	vec3 x = normalize(cross(pole, up));
+	vec3 y = cross(pole, x);
+	coreDir = normalize(cos(uGalCoreAngle) * x + sin(uGalCoreAngle) * y);
+	return pole;
+}
+
+vec3 galacticBandSky(vec3 dir, float pxPerDir, out vec3 transmittance) {
+	vec3 d = normalize(dir);
+
+	vec3 coreDir;
+	vec3 pole = mwGalacticFrame(coreDir);
+
+	float b = dot(d, pole);        // height above the galactic plane
+	float l = dot(d, coreDir);     // longitude: +1 toward the core, -1 anticenter
+
+	// Brighter toward the core, dimmer toward the anticenter: we are off to one side.
+	float asym = 0.35 + 0.65 * smoothstep(-1.0, 1.0, l);
+
+	// The band: thin, and thinner away from the core.
+	float width = uGalWidth * (0.5 + 0.75 * smoothstep(-1.0, 1.0, l));
+	float band = exp(-(b * b) / (width * width));
+
+	// Cloudy texture inside the band, then a finer granular layer for star clouds.
+	float clouds = mwFbm(d * uGalNoiseScale, 4.0);
+	float nebulosity = band * mix(0.45, 1.0, clouds) * asym;
+	float grain = smoothstep(0.55, 0.95, mwFbm(d * uGalNoiseScale * 4.0, 3.0));
+	float starClouds = band * grain * asym;
+
+	// The core bulge.
+	float cosang = clamp(dot(d, coreDir), -1.0, 1.0);
+	float ang = acos(cosang);
+	float core = exp(-(ang * ang) / (uGalCoreSize * uGalCoreSize));
+
+	// Dust: a rift just off the midplane, deepest toward the core.
+	float rift = exp(-pow((b - uGalRiftOffset) / uGalRiftWidth, 2.0)) * (0.3 + 0.7 * smoothstep(-1.0, 1.0, l));
+	vec3 dustAbs = vec3(0.72, 0.84, 1.0);
+	vec3 T = exp(-dustAbs * uGalDust * rift);
+
+	vec3 col = vec3(0.0);
+	col += core * vec3(1.00, 0.93, 0.80) * uGalCore;
+	col += nebulosity * vec3(0.70, 0.80, 1.00) * uGalBand;
+	col += starClouds * vec3(0.85, 0.90, 1.00) * uGalStarClouds;
+	col *= T;   // dust carves dark lanes through the band itself
+
+	transmittance = T;
+	return col * uGalBright;
+}
+
+#endif  // FBM_MILKYWAY_INC_GLSL
 
 // ===== THE FOLD =================================================================
 vec3 skyColour(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
@@ -526,7 +729,9 @@ vec3 skyColour(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
 	vec3 T   = vec3(1.0);
 
 	// ---- nearest: the local nebula volume (emission AND absorption) ----
-	{
+	// Guarded on the fade: at 0 the whole layer is skipped, so turning the clouds off
+	// costs nothing at all rather than evaluating an invisible layer.
+	if (uFadeNebula > 0.0) {
 		vec3 Tl;
 		vec3 e = nebulaSky(camPos, dir, pxPerDir, Tl);
 		Tl = mix(vec3(1.0), Tl, uFadeNebula);
@@ -545,13 +750,17 @@ vec3 skyColour(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
 	}
 	if (T.r < 0.01 && T.g < 0.01 && T.b < 0.01) { transmittance = T; return col; }
 
-	// ---- farthest: background content goes here ----
-	// The Milky Way, distant nebulae and distant galaxies are direction-only and sit
-	// behind everything above. They are ADDITIVE emitters (with their own dust for
-	// absorption), so they fold in exactly like the starfield:
-	//
-	//     { vec3 Tl; vec3 e = milkywaySky(dir, pxPerDir, Tl);
-	//       col += T * e; T *= Tl; }
+	// ---- farthest: background content ----
+	// The Milky Way band is direction-only and sits behind everything above, so its own
+	// dust cannot dim the local stars in front of it -- but it also cannot be dimmed by
+	// them, and the fold is the same one line.
+	if (uFadeGalaxy > 0.0) {
+		vec3 Tl;
+		vec3 e = galacticBandSky(dir, pxPerDir, Tl);
+		Tl = mix(vec3(1.0), Tl, uFadeGalaxy);
+		col += T * e * uFadeGalaxy;
+		T *= Tl;
+	}
 
 	transmittance = T;
 	return col;

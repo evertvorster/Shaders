@@ -51,8 +51,9 @@ uniform vec2  u_mouse;
 // Fades, then every knob the included layers need (their names are namespaced per
 // layer -- uStar*, uNeb* -- because a GLSL translation unit is flat).
 
-const float uFadeNebula = 1.00;  // [0, 1]   weight of the local nebula layer
+const float uFadeNebula = 0.00;  // [0, 1]   weight of the local nebula layer (0 = OFF)
 const float uFadeStars  = 1.00;  // [0, 1]   weight of the local starfield layer
+const float uFadeGalaxy = 1.00;  // [0, 1]   weight of the Milky Way band
 
 // starfield knobs (Space/Starfield)
 const float uStarDensity      = 60.0;  // [5, 400] field density: star count scales with its SQUARE
@@ -73,12 +74,28 @@ const float uNebLocalStars = 1.00;  // [0, 1]     stars embedded in the gas
 const float uNebNoiseScale = 1.00;  // [0.05, 4]  size of the cloud detail
 const float uNebSteps      = 16.0;  // [6, 64]    march steps: quality vs speed
 
+// Milky Way band knobs (Space/GalacticBand)
+const float uGalPitch       = 1.00;   // [0, 3.14]   band tilt
+const float uGalYaw         = 0.50;   // [0, 6.28]   band orientation around the sky
+const float uGalCoreAngle   = 0.00;   // [0, 6.28]   where the bright core sits along the band
+const float uGalWidth       = 0.14;   // [0.02, 0.4] band thickness
+const float uGalCoreSize    = 0.15;   // [0.05, 1]   angular size of the core bulge
+const float uGalCore        = 0.90;   // [0, 4]      core bulge brightness
+const float uGalBand        = 0.70;   // [0, 4]      band brightness
+const float uGalStarClouds  = 0.50;   // [0, 4]      unresolved star clouds
+const float uGalNoiseScale  = 7.00;   // [0.5, 16]   size of the cloud texture
+const float uGalRiftOffset  = 0.03;   // [-0.2, 0.2] dust rift offset from the midplane
+const float uGalRiftWidth   = 0.04;   // [0.01, 0.3] dust rift width
+const float uGalDust        = 1.20;   // [0, 3]      dust extinction
+const float uGalBright      = 0.80;   // [0, 4]      exposure
+
 // ===== SHARED MATHS =============================================================
 // The layers themselves. Each include brings its constants, maths and contract; the
 // include guards let them share lib/hash.glsl without colliding.
 
 #include "Space/Starfield/starfield.inc.glsl"
 #include "Space/Nebula/gyroid-clouds.inc.glsl"
+#include "Space/GalacticBand/fbm-milkyway.inc.glsl"
 
 // ===== THE FOLD =================================================================
 vec3 skyColour(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
@@ -86,7 +103,9 @@ vec3 skyColour(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
 	vec3 T   = vec3(1.0);
 
 	// ---- nearest: the local nebula volume (emission AND absorption) ----
-	{
+	// Guarded on the fade: at 0 the whole layer is skipped, so turning the clouds off
+	// costs nothing at all rather than evaluating an invisible layer.
+	if (uFadeNebula > 0.0) {
 		vec3 Tl;
 		vec3 e = nebulaSky(camPos, dir, pxPerDir, Tl);
 		Tl = mix(vec3(1.0), Tl, uFadeNebula);
@@ -105,13 +124,17 @@ vec3 skyColour(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
 	}
 	if (T.r < 0.01 && T.g < 0.01 && T.b < 0.01) { transmittance = T; return col; }
 
-	// ---- farthest: background content goes here ----
-	// The Milky Way, distant nebulae and distant galaxies are direction-only and sit
-	// behind everything above. They are ADDITIVE emitters (with their own dust for
-	// absorption), so they fold in exactly like the starfield:
-	//
-	//     { vec3 Tl; vec3 e = milkywaySky(dir, pxPerDir, Tl);
-	//       col += T * e; T *= Tl; }
+	// ---- farthest: background content ----
+	// The Milky Way band is direction-only and sits behind everything above, so its own
+	// dust cannot dim the local stars in front of it -- but it also cannot be dimmed by
+	// them, and the fold is the same one line.
+	if (uFadeGalaxy > 0.0) {
+		vec3 Tl;
+		vec3 e = galacticBandSky(dir, pxPerDir, Tl);
+		Tl = mix(vec3(1.0), Tl, uFadeGalaxy);
+		col += T * e * uFadeGalaxy;
+		T *= Tl;
+	}
 
 	transmittance = T;
 	return col;
@@ -132,11 +155,13 @@ vec3 aces(vec3 x) {
 }
 
 void main() {
-	// Fixed camera just off the volume centre, looking outward (reproducible).
-	vec3 camPos = vec3(0.40, 0.15, 0.0);
-	vec3 targetDir = normalize(camPos);
-	mat3 view = lookAt(targetDir, vec3(0.0, 1.0, 0.0));
-	float fov = 55.0;
+	// Preview framing: look straight at the galactic core, so the band and its bulge
+	// fill the view. Host plumbing only; the generated hosts use their own camera.
+	vec3 coreDir;
+	mwGalacticFrame(coreDir);
+	vec3 camPos = vec3(0.0);
+	mat3 view = lookAt(coreDir, vec3(0.0, 1.0, 0.0));
+	float fov = 70.0;
 	vec3 dir = normalize(view * cameraRay(gl_FragCoord.xy, fov));
 	float pxPerDir = 2.0 * tan(radians(fov * 0.5)) / u_resolution.y;
 
