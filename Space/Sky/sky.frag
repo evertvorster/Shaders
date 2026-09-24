@@ -83,7 +83,8 @@ const float uMwWidth      = 0.10;  // [0.02, 0.6] bright band width
 const float uMwFalloff    = 2.00;  // [0.5, 8]    cross-band falloff: 2 = gaussian, higher = flatter then sharper
 const float uMwSpan       = 118.0; // [15, 180]   half-width of the arc, in degrees
 const float uMwTaper      = 0.20;  // [0, 1]      how much thinner the bands get at the sides
-const float uMwNoiseScale = 15.9;  // [0.5, 60]   size of the turbulence
+const float uMwNoiseScale = 15.9;  // [0.5, 60]   size of the bright-band turbulence
+const float uMwDustNoiseScale = 20.7; // [0.5, 60] size of the DUST turbulence (its own)
 const float uMwBright     = 0.45;  // [0, 4]      bright band brightness
 const float uMwDust       = 4.00;  // [0, 12]     dark band extinction
 const float uMwDustWidth  = 0.10;  // [0.01, 0.4] dark band outer width
