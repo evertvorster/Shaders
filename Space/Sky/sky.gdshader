@@ -8,7 +8,7 @@ render_mode cull_front, unshaded, depth_draw_never, depth_test_disabled;
 
 uniform float uFadeNebula : hint_range(0, 1, 0.01) = 0.00;  // weight of the local nebula layer (0 = OFF)
 uniform float uFadeStars : hint_range(0, 1, 0.01) = 1.00;  // weight of the local starfield layer
-uniform float uFadeGalaxy : hint_range(0, 1, 0.01) = 1.00;  // weight of the Milky Way band
+uniform float uFadeMilkyway : hint_range(0, 1, 0.01) = 1.00;  // weight of the Milky Way layer
 uniform float uStarDensity : hint_range(5, 400, 1) = 60.0;  // field density: star count scales with its SQUARE
 uniform float uStarCluster : hint_range(0, 1, 0.01) = 0.00;  // clumping; 0 = perfectly uniform field
 uniform float uStarClusterScale : hint_range(0.5, 20, 0.1) = 4.00;  // clump size: lower = bigger clumps
@@ -24,17 +24,18 @@ uniform float uNebSunHeight : hint_range(-1, 1, 0.01) = 0.50;  // sun elevation
 uniform float uNebLocalStars : hint_range(0, 1, 0.01) = 1.00;  // stars embedded in the gas
 uniform float uNebNoiseScale : hint_range(0.05, 4, 0.01) = 1.00;  // size of the cloud detail
 uniform float uNebSteps : hint_range(6, 64, 0.1) = 16.0;  // march steps: quality vs speed
-uniform float uGalPitch : hint_range(0, 3.14, 0.01) = 0.00;  // tilt of the galactic plane (0 = world XZ)
-uniform float uGalYaw : hint_range(0, 6.28, 0.01) = 0.00;  // yaw of the plane
-uniform float uGalEmission : hint_range(0, 4, 0.01) = 0.25;  // how brightly the gas glows
-uniform float uGalDust : hint_range(0, 4, 0.01) = 2.50;  // dust extinction (reddens long paths)
-uniform float uGalTurb : hint_range(0, 1, 0.01) = 0.80;  // surface turbulence
-uniform float uGalNoiseScale : hint_range(0.05, 2, 0.01) = 0.50;  // size of the turbulent structure
-uniform float uGalArmCount : hint_range(1, 6, 0.01) = 2.00;  // number of spiral arms
-uniform float uGalArmTwist : hint_range(1, 10, 0.01) = 4.00;  // how tightly the arms wind
-uniform float uGalArmStrength : hint_range(0, 1, 0.01) = 0.60;  // arm contrast
-uniform float uGalSoftness : hint_range(0.01, 0.5, 0.001) = 0.08;  // bounds the grazing-ray column
-uniform float uGalBright : hint_range(0, 4, 0.01) = 1.00;  // exposure
+uniform float uMwPitch : hint_range(0, 3.14, 0.01) = 0.00;  // tilt of the galactic plane
+uniform float uMwYaw : hint_range(0, 6.28, 0.01) = 0.00;  // yaw of the plane
+uniform float uMwCoreAngle : hint_range(0, 6.28, 0.01) = 0.00;  // where the core sits along the band
+uniform float uMwWidth : hint_range(0.02, 0.5, 0.001) = 0.10;  // bright band thickness (at the core)
+uniform float uMwTaper : hint_range(0, 1, 0.01) = 0.60;  // how much thinner the bands get at the tips
+uniform float uMwNoiseScale : hint_range(0.5, 8, 0.01) = 2.50;  // size of the turbulence
+uniform float uMwBright : hint_range(0, 4, 0.01) = 1.00;  // bright band brightness
+uniform float uMwDust : hint_range(0, 4, 0.01) = 1.20;  // dark band extinction
+uniform float uMwDustWidth : hint_range(0.01, 0.3, 0.001) = 0.055;  // dark band thickness
+uniform float uMwDustOffset : hint_range(-0.15, 0.15, 0.001) = 0.02;  // dark band offset from the midplane
+uniform float uMwCore : hint_range(0, 4, 0.01) = 1.50;  // core brightness
+uniform float uMwCoreSize : hint_range(0.05, 0.8, 0.001) = 0.22;  // core angular size
 
 uniform vec3  uCamPos = vec3(0.0, 0.0, 0.0);
 uniform float uPxPerDir : hint_range(0.00005, 0.02, 0.00005) = 0.0013;
@@ -528,28 +529,25 @@ vec3 nebulaSky(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
 }
 
 #endif  // GYROID_CLOUDS_GLSLINC
-// analytic-galaxy.inc.glsl — the Milky Way as a semi-analytic band.
+// milkyway.inc.glsl — the Milky Way as overlapping, sky-spanning components.
 //
-// No ray marching. For an exponential disk the vertical path integral has a closed form:
+// This is NOT a distant galaxy (see Space/Galaxy for that) and NOT a volume: we are
+// inside it, and it stretches across the sky. It is built from three overlapping things,
+// composed front to back:
 //
-//     ∫ exp(-|z|/hz) dt  =  2·hz / |dot(dir, pole)|
+//   1. a dark, turbulent band IN FRONT   — dust, silhouetted against what is behind it
+//   2. a bright, turbulent band BEHIND   — the unresolved starlight of the disk
+//   3. a galactic core                   — glow with its own dust
 //
-// so the column density along a line of sight is one divide, not a hundred samples. That
-// single term is the band: looking along the plane (dot(dir,pole) -> 0) is a long path;
-// looking out of it is a short one. Multiply by the radial falloff at the plane crossing
-// for the core asymmetry, then light it from the inside and let the dust absorb over the
-// same column.
+// Both bands are thickest toward the core and taper toward the tips.
 //
-// Because the structure is AUTHORED rather than integrated, nothing averages away -- and
-// it costs a handful of ops instead of a loop. The raymarched volume (git history) remains
-// the option for flying *into* a nebula; a fixed backdrop does not need it.
-//
-// Extracted so the sky compositor can include exactly the same code.
+// The band coordinate is simply the angle away from the galactic plane: `b = dot(dir,
+// pole)`. The band is `b = 0`; `l = dot(dir, coreDir)` runs along it (+1 at the core).
 //
 // GPL-3.0 (see LICENSE at the repository root).
 
-#ifndef ANALYTIC_GALAXY_INC_GLSL
-#define ANALYTIC_GALAXY_INC_GLSL
+#ifndef MILKYWAY_INC_GLSL
+#define MILKYWAY_INC_GLSL
 
 // lib/hash.glsl — integer-lattice hashes, shared by every shader.
 //
@@ -607,7 +605,6 @@ float fbm3(vec3 p) {
 
 
 #endif  // LIB_NOISE_GLSL
-// lookAt lives in raymarch; the standalone host uses it.
 // lib/raymarch.glsl — helpers for raymarched volumetric layers.
 //
 // Pure maths with no host assumptions: camera basis, ray/box intersection, phase
@@ -658,15 +655,9 @@ mat3 lookAt(vec3 fwd, vec3 up) {
 
 #endif  // LIB_RAYMARCH_GLSL
 
-// The disk, in world units. The galactic centre is the world origin.
-#define MW_HZ        1.2   // disk scale height
-#define MW_HR        8.0   // disk scale length
-#define MW_CORE      3.0   // bulge radius
-#define MW_CORE_HZ   1.6   // bulge scale height
-
 vec3 mwPole() {
-	float cp = cos(uGalPitch);
-	return normalize(vec3(sin(uGalPitch) * cos(uGalYaw), cp, sin(uGalPitch) * sin(uGalYaw)));
+	float cp = cos(uMwPitch);
+	return normalize(vec3(sin(uMwPitch) * cos(uMwYaw), cp, sin(uMwPitch) * sin(uMwYaw)));
 }
 
 float mwFbm(vec3 p, int octaves) {
@@ -681,55 +672,59 @@ float mwFbm(vec3 p, int octaves) {
 	return s / max(t, 1e-5);
 }
 
-vec3 galacticBandSky(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
+vec3 milkywaySky(vec3 dir, float pxPerDir, out vec3 transmittance) {
 	vec3 d = normalize(dir);
 	vec3 pole = mwPole();
 
 	vec3 up = abs(pole.y) < 0.99 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
 	vec3 ax = normalize(cross(pole, up));
 	vec3 ay = cross(pole, ax);
+	vec3 coreDir = normalize(cos(uMwCoreAngle) * ax + sin(uMwCoreAngle) * ay);
 
-	float z0 = dot(camPos, pole);
-	float dz = dot(d, pole);
-	vec3 q0 = camPos - z0 * pole;     // planar origin
-	vec3 qd = d - dz * pole;          // planar direction
+	float b = dot(d, pole);      // across the band (0 is the midplane)
+	float l = dot(d, coreDir);   // along it: +1 toward the core, -1 the far tip
 
-	// The representative point: the plane crossing if the ray crosses, otherwise the
-	// in-plane closest approach (grazing rays, which is what makes the band).
-	float t = (abs(dz) > 1e-4) ? (-z0 / dz) : (-dot(q0, qd) / max(dot(qd, qd), 1e-6));
-	vec3 q = q0 + t * qd;
-	float r = length(q);
+	// Turbulence in BAND coordinates (l, b), not sky coordinates, so the structure is
+	// stretched along the band the way the real thing is.
+	vec3 q = vec3(l, b, 0.0) * uMwNoiseScale;
+	float n = smoothstep(0.32, 0.78, mwFbm(q + 3.0, 5));
 
-	// Slab column (bounded by uGalSoftness so a grazing ray is bright, not infinite),
-	// times the radial falloff at the crossing; plus a rounder bulge term.
-	float vertical = 2.0 * MW_HZ / (abs(dz) + uGalSoftness);
-	float column = vertical * exp(-r / MW_HR)
-	             + 0.7 * (MW_CORE_HZ / (abs(dz) + uGalSoftness))
-	                   * exp(-(r * r) / (MW_CORE * MW_CORE));
+	// Both bands are thick toward the core and taper toward the tips.
+	float taper = mix(1.0 - uMwTaper, 1.0, smoothstep(-1.0, 0.4, clamp(l, -1.0, 1.0)));
 
-	// Spiral arms and turbulence, authored ON the column: coherent, nothing to average.
-	float phi = atan(dot(q, ay), dot(q, ax));
-	float twist = log(max(r, 1.0)) * uGalArmTwist;
-	float arms = pow(0.5 + 0.5 * cos(uGalArmCount * (phi - twist)), 3.0);
-	column *= mix(1.0, 0.10 + 1.90 * arms, uGalArmStrength);
+	// ---- 2. the bright turbulent band ----
+	float wBright = uMwWidth * taper;
+	float band = exp(-(b * b) / (wBright * wBright));
+	float bright = band * (0.20 + 1.60 * n);
+	float grain = smoothstep(0.60, 0.95, mwFbm(q * 3.0 + 9.0, 3));
+	bright += band * grain * 1.5;    // brighter star-cloud knots
 
-	float n = smoothstep(0.30, 0.80, mwFbm(q * uGalNoiseScale + 11.0, 5));
-	column *= mix(1.0, n, uGalTurb);
+	// ---- 3. the galactic core ----
+	float ang = acos(clamp(dot(d, coreDir), -1.0, 1.0));
+	float core = exp(-(ang * ang) / (uMwCoreSize * uMwCoreSize));
+	core *= mix(0.35, 1.0, n);       // the core has dust across it
 
-	// Lit from the inside: emission follows the column. Dust absorbs over the same path,
-	// so the source saturates where the path is long and the band is opaque.
-	vec3 dustAbs = vec3(0.72, 0.84, 1.0);
-	vec3 T = exp(-dustAbs * uGalDust * column);
+	// ---- 1. the dark turbulent band, IN FRONT ----
+	float wDark = uMwDustWidth * taper;
+	float dark = exp(-pow((b - uMwDustOffset) / wDark, 2.0));
+	dark *= 0.35 + 1.20 * smoothstep(0.25, 0.70, mwFbm(q * 1.4 + 21.0, 4));
 
-	float coreness = exp(-r / MW_CORE);
-	vec3 emitColour = mix(vec3(0.72, 0.82, 1.0), vec3(1.00, 0.90, 0.72), coreness);
+	vec3 dustAbs = vec3(0.70, 0.82, 1.0);
+	vec3 T = exp(-dustAbs * uMwDust * dark);
 
-	vec3 col = emitColour * uGalEmission * (1.0 - T);
+	// ---- compose: emission is behind the dark band, then the sky behind it ----
+	float coreness = smoothstep(0.2, 1.0, clamp(l, -1.0, 1.0));
+	vec3 brightColour = mix(vec3(0.72, 0.82, 1.00), vec3(1.00, 0.93, 0.80), coreness);
+	vec3 coreColour  = vec3(1.00, 0.95, 0.85);
+
+	vec3 col = brightColour * bright * uMwBright + coreColour * core * uMwCore;
+	col *= T;
+
 	transmittance = T;
-	return col * uGalBright;
+	return col;
 }
 
-#endif  // ANALYTIC_GALAXY_INC_GLSL
+#endif  // MILKYWAY_INC_GLSL
 
 // ===== THE FOLD =================================================================
 vec3 skyColour(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
@@ -762,11 +757,11 @@ vec3 skyColour(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
 	// The Milky Way band is direction-only and sits behind everything above, so its own
 	// dust cannot dim the local stars in front of it -- but it also cannot be dimmed by
 	// them, and the fold is the same one line.
-	if (uFadeGalaxy > 0.0) {
+	if (uFadeMilkyway > 0.0) {
 		vec3 Tl;
-		vec3 e = galacticBandSky(camPos, dir, pxPerDir, Tl);
-		Tl = mix(vec3(1.0), Tl, uFadeGalaxy);
-		col += T * e * uFadeGalaxy;
+		vec3 e = milkywaySky(dir, pxPerDir, Tl);
+		Tl = mix(vec3(1.0), Tl, uFadeMilkyway);
+		col += T * e * uFadeMilkyway;
 		T *= Tl;
 	}
 

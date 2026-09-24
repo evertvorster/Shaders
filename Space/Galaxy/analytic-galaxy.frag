@@ -4,7 +4,7 @@
 // integral of an exponential disk, so the band costs one divide instead of a hundred
 // samples. Lit from the inside, dust-absorbing, with authored arms and turbulence.
 //
-//     vec3 galacticBandSky(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance);
+//     vec3 galaxySky(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance);
 //
 // GPL-3.0 (see LICENSE at the repository root).
 
@@ -32,7 +32,7 @@ const float uGalSoftness    = 0.08;  // [0.01, 0.5] bounds the grazing-ray colum
 const float uGalBright      = 1.00;  // [0, 4]      exposure
 
 // ===== SHARED MATHS =============================================================
-#include "Space/GalacticBand/analytic-galaxy.inc.glsl"
+#include "Space/Galaxy/analytic-galaxy.inc.glsl"
 
 // ===== HOST (glslviewer) ========================================================
 // Everything from this marker down is host plumbing and is REPLACED by the builder.
@@ -58,7 +58,7 @@ void main() {
 	float pxPerDir = 2.0 * tan(radians(fov * 0.5)) / u_resolution.y;
 
 	vec3 transmittance;
-	vec3 col = galacticBandSky(camPos, dir, pxPerDir, transmittance);
+	vec3 col = galaxySky(camPos, dir, pxPerDir, transmittance);
 
 	col = aces(col);
 	gl_FragColor = vec4(pow(col, vec3(0.4545)), 1.0);

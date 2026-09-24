@@ -10,7 +10,8 @@ script in `Tools/` generates the per-host variants.
 Space/
   Starfield/          procedural star base layer (source + generated formats)
   Nebula/             volumetric emission nebulae, one file per variant
-  GalacticBand/       the Milky Way band, one file per variant (background content)
+  MilkyWay/           the Milky Way as overlapping bands + core (we are inside it)
+  Galaxy/             a general distant galaxy, one file per variant (background object)
   Sky/                the compositor: the ordered stack, folds the layers together
 lib/
   hash.glsl           shared hashes (hash13, hash33)
@@ -19,7 +20,8 @@ lib/
 Tools/
   build_starfield.py  generates every format from Space/Starfield/starfield.frag
   build_nebula.py     generates every format for each Space/Nebula/*.frag
-  build_galacticband.py  generates every format for each Space/GalacticBand/*.frag
+  build_milkyway.py   generates every format for each Space/MilkyWay/*.frag
+  build_galaxy.py     generates every format for each Space/Galaxy/*.frag
   build_sky.py        generates every format from Space/Sky/sky.frag
   preview.sh          render one frame headlessly to a PNG (for looking at work)
 ```

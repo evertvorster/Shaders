@@ -49,7 +49,7 @@ float mwFbm(vec3 p, int octaves) {
 	return s / max(t, 1e-5);
 }
 
-vec3 galacticBandSky(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
+vec3 galaxySky(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
 	vec3 d = normalize(dir);
 	vec3 pole = mwPole();
 

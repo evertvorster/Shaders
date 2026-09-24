@@ -53,7 +53,7 @@ uniform vec2  u_mouse;
 
 const float uFadeNebula = 0.00;  // [0, 1]   weight of the local nebula layer (0 = OFF)
 const float uFadeStars  = 1.00;  // [0, 1]   weight of the local starfield layer
-const float uFadeGalaxy = 1.00;  // [0, 1]   weight of the Milky Way band
+const float uFadeMilkyway = 1.00;  // [0, 1]   weight of the Milky Way layer
 
 // starfield knobs (Space/Starfield)
 const float uStarDensity      = 60.0;  // [5, 400] field density: star count scales with its SQUARE
@@ -74,18 +74,19 @@ const float uNebLocalStars = 1.00;  // [0, 1]     stars embedded in the gas
 const float uNebNoiseScale = 1.00;  // [0.05, 4]  size of the cloud detail
 const float uNebSteps      = 16.0;  // [6, 64]    march steps: quality vs speed
 
-// Milky Way band knobs (Space/GalacticBand)
-const float uGalPitch      = 0.00;  // [0, 3.14]   tilt of the galactic plane (0 = world XZ)
-const float uGalYaw        = 0.00;  // [0, 6.28]   yaw of the plane
-const float uGalEmission   = 0.25;  // [0, 4]      how brightly the gas glows
-const float uGalDust       = 2.50;  // [0, 4]      dust extinction (reddens long paths)
-const float uGalTurb       = 0.80;  // [0, 1]      surface turbulence
-const float uGalNoiseScale = 0.50;  // [0.05, 2]   size of the turbulent structure
-const float uGalArmCount   = 2.00;  // [1, 6]      number of spiral arms
-const float uGalArmTwist   = 4.00;  // [1, 10]     how tightly the arms wind
-const float uGalArmStrength = 0.60; // [0, 1]      arm contrast
-const float uGalSoftness   = 0.08;  // [0.01, 0.5] bounds the grazing-ray column
-const float uGalBright     = 1.00;  // [0, 4]      exposure
+// Milky Way knobs (Space/MilkyWay)
+const float uMwPitch      = 0.00;  // [0, 3.14]   tilt of the galactic plane
+const float uMwYaw        = 0.00;  // [0, 6.28]   yaw of the plane
+const float uMwCoreAngle  = 0.00;  // [0, 6.28]   where the core sits along the band
+const float uMwWidth      = 0.10;  // [0.02, 0.5] bright band thickness (at the core)
+const float uMwTaper      = 0.60;  // [0, 1]      how much thinner the bands get at the tips
+const float uMwNoiseScale = 2.50;  // [0.5, 8]    size of the turbulence
+const float uMwBright     = 1.00;  // [0, 4]      bright band brightness
+const float uMwDust       = 1.20;  // [0, 4]      dark band extinction
+const float uMwDustWidth  = 0.055; // [0.01, 0.3] dark band thickness
+const float uMwDustOffset = 0.02;  // [-0.15, 0.15] dark band offset from the midplane
+const float uMwCore       = 1.50;  // [0, 4]      core brightness
+const float uMwCoreSize   = 0.22;  // [0.05, 0.8] core angular size
 
 // ===== SHARED MATHS =============================================================
 // The layers themselves. Each include brings its constants, maths and contract; the
@@ -93,7 +94,7 @@ const float uGalBright     = 1.00;  // [0, 4]      exposure
 
 #include "Space/Starfield/starfield.inc.glsl"
 #include "Space/Nebula/gyroid-clouds.inc.glsl"
-#include "Space/GalacticBand/analytic-galaxy.inc.glsl"
+#include "Space/MilkyWay/milkyway.inc.glsl"
 
 // ===== THE FOLD =================================================================
 vec3 skyColour(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
@@ -126,11 +127,11 @@ vec3 skyColour(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
 	// The Milky Way band is direction-only and sits behind everything above, so its own
 	// dust cannot dim the local stars in front of it -- but it also cannot be dimmed by
 	// them, and the fold is the same one line.
-	if (uFadeGalaxy > 0.0) {
+	if (uFadeMilkyway > 0.0) {
 		vec3 Tl;
-		vec3 e = galacticBandSky(camPos, dir, pxPerDir, Tl);
-		Tl = mix(vec3(1.0), Tl, uFadeGalaxy);
-		col += T * e * uFadeGalaxy;
+		vec3 e = milkywaySky(dir, pxPerDir, Tl);
+		Tl = mix(vec3(1.0), Tl, uFadeMilkyway);
+		col += T * e * uFadeMilkyway;
 		T *= Tl;
 	}
 
@@ -153,11 +154,15 @@ vec3 aces(vec3 x) {
 }
 
 void main() {
-	// Stand back and look at the galaxy as a distant object (preview framing).
-	vec3 camPos = vec3(0.0, 26.0, 60.0);
-	vec3 targetDir = normalize(-camPos);
-	mat3 view = lookAt(targetDir, vec3(0.0, 1.0, 0.0));
-	float fov = 70.0;
+	// Look along the band at the core, so it stretches across the view (preview only).
+	vec3 camPos = vec3(0.0);
+	vec3 pole = mwPole();
+	vec3 up = abs(pole.y) < 0.99 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
+	vec3 ax = normalize(cross(pole, up));
+	vec3 ay = cross(pole, ax);
+	vec3 coreDir = normalize(cos(uMwCoreAngle) * ax + sin(uMwCoreAngle) * ay);
+	mat3 view = lookAt(coreDir, pole);
+	float fov = 90.0;
 	vec3 dir = normalize(view * cameraRay(gl_FragCoord.xy, fov));
 	float pxPerDir = 2.0 * tan(radians(fov * 0.5)) / u_resolution.y;
 
