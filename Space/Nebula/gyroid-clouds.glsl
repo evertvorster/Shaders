@@ -192,11 +192,11 @@ vec3 localStars(vec3 p) {
 // scattering events stand in for the many real ones.
 vec3 multipleOctaves(float extinction, float mu, float stepL) {
 	vec3 luminance = vec3(0.0);
-	const float octaves = 6.0;
+	const int octaves = 6;   // int, not float: safer across GLSL/Godot loop forms
 	float a = 1.0;  // attenuation
 	float b = 1.0;  // contribution
 	float c = 1.0;  // phase attenuation
-	for (float i = 0.0; i < octaves; i++) {
+	for (int i = 0; i < octaves; i++) {
 		float phase = mix(hgPhase(-0.1 * c, mu), hgPhase(0.3 * c, mu), 0.7);
 		luminance += b * phase * exp(-stepL * extinction * SIGMA_E * a);
 		a *= 0.3;

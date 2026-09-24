@@ -188,11 +188,11 @@ vec3 localStars(vec3 p) {
 // scattering events stand in for the many real ones.
 vec3 multipleOctaves(float extinction, float mu, float stepL) {
 	vec3 luminance = vec3(0.0);
-	const float octaves = 6.0;
+	const int octaves = 6;   // int, not float: safer across GLSL/Godot loop forms
 	float a = 1.0;  // attenuation
 	float b = 1.0;  // contribution
 	float c = 1.0;  // phase attenuation
-	for (float i = 0.0; i < octaves; i++) {
+	for (int i = 0; i < octaves; i++) {
 		float phase = mix(hgPhase(-0.1 * c, mu), hgPhase(0.3 * c, mu), 0.7);
 		luminance += b * phase * exp(-stepL * extinction * SIGMA_E * a);
 		a *= 0.3;
@@ -293,6 +293,12 @@ vec3 nebulaSky(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
 }
 
 varying vec3 v_dir;
+
+// ACES filmic tone map (Krzysztof Narkowicz). The source keeps this in its HOST
+// section, which the builder replaces, so the generated host must carry its own.
+vec3 aces(vec3 x) {
+	return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0);
+}
 
 // CRITICAL: compute the world direction in vertex(). Inside fragment(), VERTEX is in
 // VIEW space, so transforming it by MODEL_MATRIX there gives a value that never

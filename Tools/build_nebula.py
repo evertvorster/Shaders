@@ -240,6 +240,12 @@ uniform float uPxPerDir : hint_range(0.00005, 0.02, 0.00005) = 0.0013;
 
 varying vec3 v_dir;
 
+// ACES filmic tone map (Krzysztof Narkowicz). The source keeps this in its HOST
+// section, which the builder replaces, so the generated host must carry its own.
+vec3 aces(vec3 x) {{
+	return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0);
+}}
+
 // CRITICAL: compute the world direction in vertex(). Inside fragment(), VERTEX is in
 // VIEW space, so transforming it by MODEL_MATRIX there gives a value that never
 // changes when the camera rotates -- the sky would be painted on the screen.
