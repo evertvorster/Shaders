@@ -84,14 +84,14 @@ uniforms in the generated hosts:
 
 | variable | default | effect |
 |---|---|---|
-| `uStarSize` | 1 | scales **every** star (global size) |
-| `uStarFieldSize` | 0.8 | scales the **smallest** (faintest) stars |
-| `uStarDensity` | 60 | number of stars in the nearby field; count scales with its **square** |
-| `uStarCluster` | 0 | clumping. 0 = perfectly uniform field |
-| `uStarClusterScale` | 4 | clump size; lower = bigger clumps |
-| `uStarBright` | 1 | exposure |
-| `uStarGlow` | 1 | glare on the brightest stars; 0 = none |
-| `uStarCount` | 0.6 | cell occupancy: more stars at the *same* spacing |
+| `uStarSize` | 0.54 | scales **every** star (global size) |
+| `uStarFieldSize` | 1.13 | scales the **smallest** (faintest) stars |
+| `uStarDensity` | 59 | number of stars in the nearby field; count scales with its **square** |
+| `uStarCluster` | 1.0 | clumping. 0 = perfectly uniform field |
+| `uStarClusterScale` | 0.5 | clump size; lower = bigger clumps |
+| `uStarBright` | 1.31 | exposure |
+| `uStarGlow` | 1.03 | glare on the brightest stars; 0 = none |
+| `uStarCount` | 0.36 | cell occupancy: more stars at the *same* spacing |
 
 ## Running it
 

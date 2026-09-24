@@ -27,28 +27,28 @@
 				<variable type="float2" name="iMouse" system="MousePosition" />
 				<variable type="float" name="iTime" system="Time" />
 				<variable type="float" name="uStarSize">
-					<row><value>1.00</value></row>
+					<row><value>0.54</value></row>
 				</variable>
 				<variable type="float" name="uStarFieldSize">
-					<row><value>0.80</value></row>
+					<row><value>1.13</value></row>
 				</variable>
 				<variable type="float" name="uStarDensity">
-					<row><value>60.0</value></row>
+					<row><value>59.0</value></row>
 				</variable>
 				<variable type="float" name="uStarCluster">
-					<row><value>0.00</value></row>
+					<row><value>1.00</value></row>
 				</variable>
 				<variable type="float" name="uStarClusterScale">
-					<row><value>4.00</value></row>
+					<row><value>0.50</value></row>
 				</variable>
 				<variable type="float" name="uStarBright">
-					<row><value>1.00</value></row>
+					<row><value>1.31</value></row>
 				</variable>
 				<variable type="float" name="uStarGlow">
-					<row><value>1.00</value></row>
+					<row><value>1.03</value></row>
 				</variable>
 				<variable type="float" name="uStarCount">
-					<row><value>0.60</value></row>
+					<row><value>0.36</value></row>
 				</variable>
 			</variables>
 			<macros />

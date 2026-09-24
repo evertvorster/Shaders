@@ -61,14 +61,14 @@ uniform vec2  u_mouse;
 // The knobs. Each is annotated `[min, max]` for the generated hosts. In this file
 // (the glslviewer build) they are `const` because glslviewer cannot set custom
 // uniforms; the builder promotes them to real uniforms for SHADERed and Godot.
-const float uStarSize         = 1.00;  // [0.1, 5]   scales EVERY star
-const float uStarFieldSize    = 0.80;  // [0.05, 3]  scales the smallest (faintest) stars
-const float uStarDensity      = 60.0;  // [5, 400] field density: star count scales with its SQUARE
-const float uStarCluster      = 0.00;  // [0, 1] clumping; 0 = perfectly uniform field
-const float uStarClusterScale = 4.00;  // [0.5, 20] clump size: lower = bigger clumps
-const float uStarBright       = 1.00;  // [0, 4] exposure
-const float uStarGlow         = 1.00;  // [0, 3] glare around the brightest stars; 0 = none
-const float uStarCount        = 0.60;  // [0.05, 1] cell occupancy: more stars, same spacing
+const float uStarSize         = 0.54;  // [0.1, 5]   scales EVERY star
+const float uStarFieldSize    = 1.13;  // [0.05, 3]  scales the smallest (faintest) stars
+const float uStarDensity      = 59.0;  // [5, 400] field density: star count scales with its SQUARE
+const float uStarCluster      = 1.00;  // [0, 1] clumping; 0 = perfectly uniform field
+const float uStarClusterScale = 0.50;  // [0.5, 20] clump size: lower = bigger clumps
+const float uStarBright       = 1.31;  // [0, 4] exposure
+const float uStarGlow         = 1.03;  // [0, 3] glare around the brightest stars; 0 = none
+const float uStarCount        = 0.36;  // [0.05, 1] cell occupancy: more stars, same spacing
 
 // ===== SHARED MATHS ===========================================================
 #include "Space/Starfield/starfield.inc.glsl"

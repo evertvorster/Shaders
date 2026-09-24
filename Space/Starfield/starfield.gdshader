@@ -10,14 +10,14 @@
 shader_type spatial;
 render_mode cull_front, unshaded, depth_draw_never, depth_test_disabled;
 
-uniform float uStarSize : hint_range(0.1, 5, 0.01) = 1.00;  // scales EVERY star
-uniform float uStarFieldSize : hint_range(0.05, 3, 0.01) = 0.80;  // scales the smallest (faintest) stars
-uniform float uStarDensity : hint_range(5, 400, 1) = 60.0;  // field density: star count scales with its SQUARE
-uniform float uStarCluster : hint_range(0, 1, 0.01) = 0.00;  // clumping; 0 = perfectly uniform field
-uniform float uStarClusterScale : hint_range(0.5, 20, 0.1) = 4.00;  // clump size: lower = bigger clumps
-uniform float uStarBright : hint_range(0, 4, 0.01) = 1.00;  // exposure
-uniform float uStarGlow : hint_range(0, 3, 0.01) = 1.00;  // glare around the brightest stars; 0 = none
-uniform float uStarCount : hint_range(0.05, 1, 0.001) = 0.60;  // cell occupancy: more stars, same spacing
+uniform float uStarSize : hint_range(0.1, 5, 0.01) = 0.54;  // scales EVERY star
+uniform float uStarFieldSize : hint_range(0.05, 3, 0.01) = 1.13;  // scales the smallest (faintest) stars
+uniform float uStarDensity : hint_range(5, 400, 1) = 59.0;  // field density: star count scales with its SQUARE
+uniform float uStarCluster : hint_range(0, 1, 0.01) = 1.00;  // clumping; 0 = perfectly uniform field
+uniform float uStarClusterScale : hint_range(0.5, 20, 0.1) = 0.50;  // clump size: lower = bigger clumps
+uniform float uStarBright : hint_range(0, 4, 0.01) = 1.31;  // exposure
+uniform float uStarGlow : hint_range(0, 3, 0.01) = 1.03;  // glare around the brightest stars; 0 = none
+uniform float uStarCount : hint_range(0.05, 1, 0.001) = 0.36;  // cell occupancy: more stars, same spacing
 
 // Host plumbing: set by the scene, not a user knob.
 uniform float uPxPerDir : hint_range(0.00005, 0.02, 0.00005) = 0.0013;
