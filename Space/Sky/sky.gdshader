@@ -35,8 +35,8 @@ uniform float uMwTaper : hint_range(0, 1, 0.01) = 0.20;  // how much thinner the
 uniform float uMwNoiseScale : hint_range(0.5, 60, 0.1) = 15.9;  // size of the turbulence
 uniform float uMwBright : hint_range(0, 4, 0.01) = 0.45;  // bright band brightness
 uniform float uMwDust : hint_range(0, 12, 0.1) = 4.00;  // dark band extinction
-uniform float uMwDustWidth : hint_range(0.01, 0.4, 0.001) = 0.10;  // dark band width
-uniform float uMwDustFalloff : hint_range(0.5, 8, 0.01) = 1.50;  // dark band falloff (separate from the bright band)
+uniform float uMwDustWidth : hint_range(0.01, 0.4, 0.001) = 0.10;  // dark band outer width
+uniform float uMwDustFull : hint_range(0, 0.4, 0.001) = 0.02;  // width at full strength, then falls off to the outer width
 uniform float uMwDustOffset : hint_range(-0.15, 0.15, 0.001) = 0.02;  // dark band offset from the midplane
 uniform float uMwDustTint : hint_range(0, 2, 0.01) = 1.00;  // how brown the dark band is (0 = black)
 uniform float uMwCore : hint_range(0, 4, 0.01) = 2.78;  // core brightness
@@ -695,26 +695,27 @@ vec3 milkywaySky(vec3 dir, float pxPerDir, out vec3 transmittance) {
 	// coordinates, so the turbulence and the widths scale together.
 	float dist = uMwDistance;
 
-	float b = dot(d, pole) * dist;          // across the band
+	float b = dot(d, pole) * dist;                 // across the band
 	float c = dot(d, coreDir);
 	float s = dot(d, sideDir);
-	float deg = degrees(abs(atan(s, c))) * dist;   // along it: 0 at the centre, out to 180
+	float along = degrees(atan(s, c)) * dist;      // SIGNED along the band
+	float deg   = abs(along);                      // distance from the centre, for profiles
 
 	// The arc, in DEGREES: uMwSpan is its half-width, and the band fades past it. Working
-	// in degrees (not a normalised 0..1) keeps both transitions inside the view, where a
-	// slider can actually be seen to do something.
+	// in degrees (not a normalised 0..1) keeps both transitions inside the view.
 	float present = smoothstep(uMwSpan, uMwSpan * 0.5, deg);
 	float thick   = smoothstep(uMwSpan * 0.6, uMwSpan * 0.2, deg);   // thick middle, thin sides
 
-	// Turbulence in BAND coordinates (along, b), so the structure stretches along the band.
-	vec3 q = vec3(deg / 90.0, b, 0.0) * uMwNoiseScale;
-	float n = smoothstep(0.32, 0.78, mwFbm(q + 3.0, 5));
+	// Turbulence in BAND coordinates. The ALONG coordinate is SIGNED, so the structure is
+	// NOT mirrored about the core -- a plain abs() made left and right identical.
+	vec3 qB = vec3(along / 90.0, b, 0.0) * uMwNoiseScale;
+	float n = smoothstep(0.32, 0.78, mwFbm(qB + 3.0, 5));
 
 	// ---- 2. the bright turbulent band ----
 	float wBright = uMwWidth * mix(1.0 - uMwTaper, 1.0, thick);
 	float band = exp(-pow(abs(b) / wBright, uMwFalloff)) * present;
 	float bright = band * (0.20 + 1.60 * n);
-	float grain = smoothstep(0.60, 0.95, mwFbm(q * 3.0 + 9.0, 3));
+	float grain = smoothstep(0.60, 0.95, mwFbm(qB * 3.0 + 9.0, 3));
 	bright += band * grain * 1.5;           // brighter star-cloud knots
 
 	// ---- 3. the galactic core, at the band centre ----
@@ -723,9 +724,16 @@ vec3 milkywaySky(vec3 dir, float pxPerDir, out vec3 transmittance) {
 	core *= mix(0.35, 1.0, n);              // the core has dust across it
 
 	// ---- 1. the dark turbulent band, IN FRONT ----
+	// Its OWN noise (different seed and frequency), so the lanes do not line up with the
+	// bright band's gaps. Full strength out to uMwDustFull, falling off to zero at
+	// uMwDustWidth: that is the "full strength band" and the falloff from it.
+	vec3 qD = vec3(along / 70.0, b, 5.0) * (uMwNoiseScale * 1.3) + vec3(31.0, 17.0, 0.0);
+	float nDust = smoothstep(0.25, 0.75, mwFbm(qD, 4));
+
 	float wDark = uMwDustWidth * mix(1.0 - uMwTaper, 1.0, thick);
-	float dark = exp(-pow(abs(b - uMwDustOffset) / wDark, uMwDustFalloff)) * present;
-	dark *= 0.50 + 1.50 * smoothstep(0.25, 0.70, mwFbm(q * 1.4 + 21.0, 4));
+	float wFull = min(uMwDustFull, uMwDustWidth * 0.95) * mix(1.0 - uMwTaper, 1.0, thick);
+	float dustProfile = 1.0 - smoothstep(wFull, wDark, abs(b - uMwDustOffset));
+	float dark = dustProfile * present * (0.45 + 1.30 * nDust);
 
 	// Extinction is chromatic: dust eats blue first, so what gets through is redder.
 	vec3 dustAbs = vec3(0.60, 0.82, 1.10);

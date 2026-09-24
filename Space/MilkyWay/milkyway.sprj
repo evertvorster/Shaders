@@ -65,8 +65,8 @@
 				<variable type="float" name="uMwDustWidth">
 					<row><value>0.10</value></row>
 				</variable>
-				<variable type="float" name="uMwDustFalloff">
-					<row><value>1.50</value></row>
+				<variable type="float" name="uMwDustFull">
+					<row><value>0.02</value></row>
 				</variable>
 				<variable type="float" name="uMwDustOffset">
 					<row><value>0.02</value></row>

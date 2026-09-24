@@ -86,8 +86,8 @@ const float uMwTaper      = 0.20;  // [0, 1]      how much thinner the bands get
 const float uMwNoiseScale = 15.9;  // [0.5, 60]   size of the turbulence
 const float uMwBright     = 0.45;  // [0, 4]      bright band brightness
 const float uMwDust       = 4.00;  // [0, 12]     dark band extinction
-const float uMwDustWidth  = 0.10;  // [0.01, 0.4] dark band width
-const float uMwDustFalloff = 1.50; // [0.5, 8]    dark band falloff (separate from the bright band)
+const float uMwDustWidth  = 0.10;  // [0.01, 0.4] dark band outer width
+const float uMwDustFull   = 0.02;  // [0, 0.4]     width at full strength, then falls off to the outer width
 const float uMwDustOffset = 0.02;  // [-0.15, 0.15] dark band offset from the midplane
 const float uMwDustTint   = 1.00;  // [0, 2]      how brown the dark band is (0 = black)
 const float uMwCore       = 2.78;  // [0, 4]      core brightness
