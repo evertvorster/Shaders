@@ -75,19 +75,14 @@ const float uNebNoiseScale = 1.00;  // [0.05, 4]  size of the cloud detail
 const float uNebSteps      = 16.0;  // [6, 64]    march steps: quality vs speed
 
 // Milky Way band knobs (Space/GalacticBand)
-const float uGalPitch       = 1.00;   // [0, 3.14]   band tilt
-const float uGalYaw         = 0.50;   // [0, 6.28]   band orientation around the sky
-const float uGalCoreAngle   = 0.00;   // [0, 6.28]   where the bright core sits along the band
-const float uGalWidth       = 0.14;   // [0.02, 0.4] band thickness
-const float uGalCoreSize    = 0.15;   // [0.05, 1]   angular size of the core bulge
-const float uGalCore        = 0.90;   // [0, 4]      core bulge brightness
-const float uGalBand        = 0.70;   // [0, 4]      band brightness
-const float uGalStarClouds  = 0.50;   // [0, 4]      unresolved star clouds
-const float uGalNoiseScale  = 7.00;   // [0.5, 16]   size of the cloud texture
-const float uGalRiftOffset  = 0.03;   // [-0.2, 0.2] dust rift offset from the midplane
-const float uGalRiftWidth   = 0.04;   // [0.01, 0.3] dust rift width
-const float uGalDust        = 1.20;   // [0, 3]      dust extinction
-const float uGalBright      = 0.80;   // [0, 4]      exposure
+const float uGalPitch      = 0.00;  // [0, 3.14]   tilt of the galactic plane (0 = world XZ)
+const float uGalYaw        = 0.00;  // [0, 6.28]   yaw of the plane
+const float uGalEmission   = 0.25;  // [0, 4]      how brightly the gas glows
+const float uGalDust       = 2.50;  // [0, 4]      dust extinction (reddens long paths)
+const float uGalTurb       = 0.80;  // [0, 1]      surface turbulence
+const float uGalNoiseScale = 0.50;  // [0.05, 2]   size of the turbulent structure
+const float uGalSteps      = 64.0;  // [16, 128]   march steps: quality vs speed
+const float uGalBright     = 1.00;  // [0, 4]      exposure
 
 // ===== SHARED MATHS =============================================================
 // The layers themselves. Each include brings its constants, maths and contract; the
@@ -95,7 +90,7 @@ const float uGalBright      = 0.80;   // [0, 4]      exposure
 
 #include "Space/Starfield/starfield.inc.glsl"
 #include "Space/Nebula/gyroid-clouds.inc.glsl"
-#include "Space/GalacticBand/fbm-milkyway.inc.glsl"
+#include "Space/GalacticBand/volumetric-galaxy.inc.glsl"
 
 // ===== THE FOLD =================================================================
 vec3 skyColour(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
@@ -130,7 +125,7 @@ vec3 skyColour(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
 	// them, and the fold is the same one line.
 	if (uFadeGalaxy > 0.0) {
 		vec3 Tl;
-		vec3 e = galacticBandSky(dir, pxPerDir, Tl);
+		vec3 e = galacticBandSky(camPos, dir, pxPerDir, Tl);
 		Tl = mix(vec3(1.0), Tl, uFadeGalaxy);
 		col += T * e * uFadeGalaxy;
 		T *= Tl;
@@ -155,12 +150,10 @@ vec3 aces(vec3 x) {
 }
 
 void main() {
-	// Preview framing: look straight at the galactic core, so the band and its bulge
-	// fill the view. Host plumbing only; the generated hosts use their own camera.
-	vec3 coreDir;
-	mwGalacticFrame(coreDir);
-	vec3 camPos = vec3(0.0);
-	mat3 view = lookAt(coreDir, vec3(0.0, 1.0, 0.0));
+	// Sit in the disk, off to one side, looking along the plane (preview framing).
+	vec3 camPos = vec3(12.0, 0.3, 0.0);
+	vec3 targetDir = normalize(vec3(-0.55, 0.05, 1.0));
+	mat3 view = lookAt(targetDir, vec3(0.0, 1.0, 0.0));
 	float fov = 70.0;
 	vec3 dir = normalize(view * cameraRay(gl_FragCoord.xy, fov));
 	float pxPerDir = 2.0 * tan(radians(fov * 0.5)) / u_resolution.y;

@@ -32,16 +32,11 @@ uniform float uNebNoiseScale;
 uniform float uNebSteps;
 uniform float uGalPitch;
 uniform float uGalYaw;
-uniform float uGalCoreAngle;
-uniform float uGalWidth;
-uniform float uGalCoreSize;
-uniform float uGalCore;
-uniform float uGalBand;
-uniform float uGalStarClouds;
-uniform float uGalNoiseScale;
-uniform float uGalRiftOffset;
-uniform float uGalRiftWidth;
+uniform float uGalEmission;
 uniform float uGalDust;
+uniform float uGalTurb;
+uniform float uGalNoiseScale;
+uniform float uGalSteps;
 uniform float uGalBright;
 
 // ===== PHYSICS ==================================================================
@@ -533,20 +528,28 @@ vec3 nebulaSky(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
 }
 
 #endif  // GYROID_CLOUDS_GLSLINC
-// fbm-milkyway.inc.glsl — the Milky Way band as a direction-only background layer.
+// volumetric-galaxy.inc.glsl — the Milky Way as a VOLUMETRIC disk we are inside.
 //
-// We are INSIDE the galaxy, so the band is not symmetric: it is brighter toward the
-// galactic core, thinner and dimmer toward the anticenter, and cut by a dust rift just
-// off the midplane. The masks below build that; the texture is value-noise fbm, which is
-// far cheaper than the scattered-sphere primitives the reference used.
+// Instead of painting a band on the sky, this marches a ray through a flattened galaxy
+// volume (a "saucer"): an exponential disk plus a central bulge. We sit in the disk, off
+// to one side, so:
 //
-// Extracted so the sky compositor can include exactly the same code. Included by
-// fbm-milkyway.frag and Space/Sky/sky.frag.
+//   * looking along the plane -> a long path through the gas -> the band
+//   * looking up/out of the plane -> a short path -> dark sky
+//   * looking toward the core -> the path is densest -> the band is brightest. The
+//     asymmetry is not a mask, it is the geometry.
+//   * a long enough path absorbs (dust), so the far side dims and reddens.
+//
+// The gas is lit from the inside: emission is proportional to density (unresolved
+// starlight), and fbm makes the surface turbulent.
+//
+// Extracted so the sky compositor can include exactly the same code. The contract takes
+// camPos because it is a volume with parallax.
 //
 // GPL-3.0 (see LICENSE at the repository root).
 
-#ifndef FBM_MILKYWAY_INC_GLSL
-#define FBM_MILKYWAY_INC_GLSL
+#ifndef VOLUMETRIC_GALAXY_INC_GLSL
+#define VOLUMETRIC_GALAXY_INC_GLSL
 
 // lib/hash.glsl — integer-lattice hashes, shared by every shader.
 //
@@ -654,74 +657,79 @@ mat3 lookAt(vec3 fwd, vec3 up) {
 
 #endif  // LIB_RAYMARCH_GLSL
 
-// value-noise fbm with a variable octave count (for the band's cloud texture)
-float mwFbm(vec3 p, float octaves) {
-	float a = 0.5, s = 0.0, t = 0.0;
-	for (int i = 0; i < 5; i++) {
-		if (float(i) >= octaves) break;
-		s += a * vnoise(p);
-		t += a;
-		p *= 2.03;
-		a *= 0.5;
-	}
-	return s / max(t, 1e-5);
-}
+// The disk, in world units. The galactic centre is the world origin.
+#define MW_RADIUS   30.0   // disk radius
+#define MW_HZ        1.2   // disk scale height
+#define MW_HR        8.0   // disk scale length
+#define MW_CORE      3.0   // bulge radius
+#define MW_CORE_HZ   1.6   // bulge scale height
 
-// The galactic frame from the knobs: `pole` is the band normal (the plane is where
-// dot(dir, pole) == 0), and `coreDir` is where the bright core sits in that plane.
-vec3 mwGalacticFrame(out vec3 coreDir) {
+vec3 mwPole() {
 	float cp = cos(uGalPitch);
-	vec3 pole = normalize(vec3(sin(uGalPitch) * cos(uGalYaw), cp, sin(uGalPitch) * sin(uGalYaw)));
-	vec3 up = abs(pole.y) < 0.99 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
-	vec3 x = normalize(cross(pole, up));
-	vec3 y = cross(pole, x);
-	coreDir = normalize(cos(uGalCoreAngle) * x + sin(uGalCoreAngle) * y);
-	return pole;
+	return normalize(vec3(sin(uGalPitch) * cos(uGalYaw), cp, sin(uGalPitch) * sin(uGalYaw)));
 }
 
-vec3 galacticBandSky(vec3 dir, float pxPerDir, out vec3 transmittance) {
+// Density of the galaxy at a world point.
+float mwDensity(vec3 p, vec3 pole) {
+	float z = dot(p, pole);
+	float r = length(p - z * pole);
+	if (r > MW_RADIUS) return 0.0;
+	float disk  = exp(-abs(z) / MW_HZ) * exp(-r / MW_HR);
+	float bulge = exp(-(r * r) / (MW_CORE * MW_CORE)) * exp(-abs(z) / MW_CORE_HZ);
+	float d = disk + 0.7 * bulge;
+	// Make the gas turbulent: clumps and voids rather than a smooth exponential.
+	float n = fbm3(p * uGalNoiseScale + 11.0);
+	d *= mix(1.0, 0.20 + 1.80 * n, uGalTurb);
+	return d;
+}
+
+// Exit distance of a ray from a sphere of `radius` centred at the origin (we are inside).
+float mwRayExit(vec3 ro, vec3 rd, float radius) {
+	float b = dot(ro, rd);
+	float c = dot(ro, ro) - radius * radius;
+	float disc = b * b - c;
+	if (disc <= 0.0) return -1.0;
+	return -b + sqrt(disc);
+}
+
+vec3 galacticBandSky(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
 	vec3 d = normalize(dir);
+	vec3 pole = mwPole();
 
-	vec3 coreDir;
-	vec3 pole = mwGalacticFrame(coreDir);
+	float tEnd = mwRayExit(camPos, d, MW_RADIUS);
+	if (tEnd <= 0.0) { transmittance = vec3(1.0); return vec3(0.0); }
 
-	float b = dot(d, pole);        // height above the galactic plane
-	float l = dot(d, coreDir);     // longitude: +1 toward the core, -1 anticenter
+	int steps = int(uGalSteps);
+	float dt = tEnd / float(steps);
 
-	// Brighter toward the core, dimmer toward the anticenter: we are off to one side.
-	float asym = 0.35 + 0.65 * smoothstep(-1.0, 1.0, l);
-
-	// The band: thin, and thinner away from the core.
-	float width = uGalWidth * (0.5 + 0.75 * smoothstep(-1.0, 1.0, l));
-	float band = exp(-(b * b) / (width * width));
-
-	// Cloudy texture inside the band, then a finer granular layer for star clouds.
-	float clouds = mwFbm(d * uGalNoiseScale, 4.0);
-	float nebulosity = band * mix(0.45, 1.0, clouds) * asym;
-	float grain = smoothstep(0.55, 0.95, mwFbm(d * uGalNoiseScale * 4.0, 3.0));
-	float starClouds = band * grain * asym;
-
-	// The core bulge.
-	float cosang = clamp(dot(d, coreDir), -1.0, 1.0);
-	float ang = acos(cosang);
-	float core = exp(-(ang * ang) / (uGalCoreSize * uGalCoreSize));
-
-	// Dust: a rift just off the midplane, deepest toward the core.
-	float rift = exp(-pow((b - uGalRiftOffset) / uGalRiftWidth, 2.0)) * (0.3 + 0.7 * smoothstep(-1.0, 1.0, l));
 	vec3 dustAbs = vec3(0.72, 0.84, 1.0);
-	vec3 T = exp(-dustAbs * uGalDust * rift);
-
 	vec3 col = vec3(0.0);
-	col += core * vec3(1.00, 0.93, 0.80) * uGalCore;
-	col += nebulosity * vec3(0.70, 0.80, 1.00) * uGalBand;
-	col += starClouds * vec3(0.85, 0.90, 1.00) * uGalStarClouds;
-	col *= T;   // dust carves dark lanes through the band itself
+	vec3 T = vec3(1.0);
+
+	for (int i = 0; i < steps; i++) {
+		vec3 p = camPos + (float(i) + 0.5) * dt * d;
+		float dens = mwDensity(p, pole);
+		if (dens > 0.0) {
+			float r = length(p - dot(p, pole) * pole);
+			float coreness = exp(-r / MW_CORE);
+			// warm where the bulge is, cooler out in the disk
+			vec3 gasColour = mix(vec3(0.72, 0.82, 1.0), vec3(1.00, 0.90, 0.72), coreness);
+
+			vec3 emission = gasColour * dens * uGalEmission;
+			vec3 sigma = dustAbs * uGalDust * dens;
+			vec3 tr = exp(-sigma * dt);
+
+			col += T * emission * dt;
+			T *= tr;
+			if (T.r < 0.003 && T.g < 0.003 && T.b < 0.003) break;
+		}
+	}
 
 	transmittance = T;
 	return col * uGalBright;
 }
 
-#endif  // FBM_MILKYWAY_INC_GLSL
+#endif  // VOLUMETRIC_GALAXY_INC_GLSL
 
 // ===== THE FOLD =================================================================
 vec3 skyColour(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
@@ -756,7 +764,7 @@ vec3 skyColour(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
 	// them, and the fold is the same one line.
 	if (uFadeGalaxy > 0.0) {
 		vec3 Tl;
-		vec3 e = galacticBandSky(dir, pxPerDir, Tl);
+		vec3 e = galacticBandSky(camPos, dir, pxPerDir, Tl);
 		Tl = mix(vec3(1.0), Tl, uFadeGalaxy);
 		col += T * e * uFadeGalaxy;
 		T *= Tl;

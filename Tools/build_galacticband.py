@@ -54,7 +54,7 @@ void main() {{
 	float pxPerDir = 2.0 / (uProj[1][1] * iResolution.y);
 
 	vec3 transmittance;
-	vec3 col = galacticBandSky(dir, pxPerDir, transmittance);
+	vec3 col = galacticBandSky(uCamPos, dir, pxPerDir, transmittance);
 
 	col = aces(col);
 	outColor = vec4(pow(col, vec3(0.4545)), 1.0);
@@ -77,6 +77,7 @@ render_mode cull_front, unshaded, depth_draw_never, depth_test_disabled;
 {uni}
 
 uniform float uPxPerDir : hint_range(0.00005, 0.02, 0.00005) = 0.0013;
+uniform vec3  uCamPos = vec3(0.0, 0.0, 0.0);
 
 {physics}
 
@@ -94,7 +95,7 @@ void vertex() {{
 
 void fragment() {{
 	vec3 transmittance;
-	vec3 col = galacticBandSky(normalize(v_dir), uPxPerDir, transmittance);
+	vec3 col = galacticBandSky(uCamPos, normalize(v_dir), uPxPerDir, transmittance);
 	col = aces(col);
 	ALBEDO = pow(col, vec3(0.4545));
 }}

@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <project version="2">
 	<pipeline>
-		<pass name="fbm-milkyway" type="shader" active="true" patchverts="1">
-			<shader type="vs" path="fbm-milkyway.vert" entry="main" />
-			<shader type="ps" path="fbm-milkyway.glsl" entry="main" />
+		<pass name="volumetric-galaxy" type="shader" active="true" patchverts="1">
+			<shader type="vs" path="volumetric-galaxy.vert" entry="main" />
+			<shader type="ps" path="volumetric-galaxy.glsl" entry="main" />
 			<inputlayout>
 				<item value="Position" semantic="POSITION" />
 				<item value="Normal" semantic="NORMAL" />
@@ -30,43 +30,28 @@
 				<variable type="float4x4" name="uProj" system="Projection" />
 				<variable type="float3" name="uCamPos" system="CameraPosition3" />
 				<variable type="float" name="uGalPitch">
-					<row><value>1.00</value></row>
-				</variable>
-				<variable type="float" name="uGalYaw">
-					<row><value>0.50</value></row>
-				</variable>
-				<variable type="float" name="uGalCoreAngle">
 					<row><value>0.00</value></row>
 				</variable>
-				<variable type="float" name="uGalWidth">
-					<row><value>0.14</value></row>
+				<variable type="float" name="uGalYaw">
+					<row><value>0.00</value></row>
 				</variable>
-				<variable type="float" name="uGalCoreSize">
-					<row><value>0.15</value></row>
-				</variable>
-				<variable type="float" name="uGalCore">
-					<row><value>0.90</value></row>
-				</variable>
-				<variable type="float" name="uGalBand">
-					<row><value>0.70</value></row>
-				</variable>
-				<variable type="float" name="uGalStarClouds">
-					<row><value>0.50</value></row>
-				</variable>
-				<variable type="float" name="uGalNoiseScale">
-					<row><value>7.00</value></row>
-				</variable>
-				<variable type="float" name="uGalRiftOffset">
-					<row><value>0.03</value></row>
-				</variable>
-				<variable type="float" name="uGalRiftWidth">
-					<row><value>0.04</value></row>
+				<variable type="float" name="uGalEmission">
+					<row><value>0.25</value></row>
 				</variable>
 				<variable type="float" name="uGalDust">
-					<row><value>1.20</value></row>
+					<row><value>2.50</value></row>
+				</variable>
+				<variable type="float" name="uGalTurb">
+					<row><value>0.80</value></row>
+				</variable>
+				<variable type="float" name="uGalNoiseScale">
+					<row><value>0.50</value></row>
+				</variable>
+				<variable type="float" name="uGalSteps">
+					<row><value>64.0</value></row>
 				</variable>
 				<variable type="float" name="uGalBright">
-					<row><value>0.80</value></row>
+					<row><value>1.00</value></row>
 				</variable>
 			</variables>
 			<macros />
@@ -75,9 +60,9 @@
 	<objects />
 	<cameras />
 	<settings>
-		<entry type="property" name="fbm-milkyway" item="pipe" />
-		<entry type="file" name="fbm-milkyway" shader="vs" />
-		<entry type="file" name="fbm-milkyway" shader="ps" />
+		<entry type="property" name="volumetric-galaxy" item="pipe" />
+		<entry type="file" name="volumetric-galaxy" shader="vs" />
+		<entry type="file" name="volumetric-galaxy" shader="ps" />
 		<entry type="camera" fp="false">
 			<distance>3</distance>
 			<pitch>20</pitch>
