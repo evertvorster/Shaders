@@ -32,7 +32,8 @@ uniform float uMwWidth : hint_range(0.02, 0.6, 0.001) = 0.10;  // bright band wi
 uniform float uMwFalloff : hint_range(0.5, 8, 0.01) = 2.00;  // cross-band falloff: 2 = gaussian, higher = flatter then sharper
 uniform float uMwSpan : hint_range(15, 180, 1) = 118.0;  // half-width of the arc, in degrees
 uniform float uMwTaper : hint_range(0, 1, 0.01) = 0.20;  // how much thinner the bands get at the sides
-uniform float uMwNoiseScale : hint_range(0.5, 60, 0.1) = 15.9;  // size of the turbulence
+uniform float uMwNoiseScale : hint_range(0.5, 60, 0.1) = 15.9;  // size of the bright-band turbulence
+uniform float uMwDustNoiseScale : hint_range(0.5, 60, 0.1) = 20.7;  // size of the DUST turbulence (its own)
 uniform float uMwBright : hint_range(0, 4, 0.01) = 0.45;  // bright band brightness
 uniform float uMwDust : hint_range(0, 12, 0.1) = 4.00;  // dark band extinction
 uniform float uMwDustWidth : hint_range(0.01, 0.4, 0.001) = 0.10;  // dark band outer width
@@ -727,7 +728,7 @@ vec3 milkywaySky(vec3 dir, float pxPerDir, out vec3 transmittance) {
 	// Its OWN noise (different seed and frequency), so the lanes do not line up with the
 	// bright band's gaps. Full strength out to uMwDustFull, falling off to zero at
 	// uMwDustWidth: that is the "full strength band" and the falloff from it.
-	vec3 qD = vec3(along / 70.0, b, 5.0) * (uMwNoiseScale * 1.3) + vec3(31.0, 17.0, 0.0);
+	vec3 qD = vec3(along / 70.0, b, 5.0) * uMwDustNoiseScale + vec3(31.0, 17.0, 0.0);
 	float nDust = smoothstep(0.25, 0.75, mwFbm(qD, 4));
 
 	float wDark = uMwDustWidth * mix(1.0 - uMwTaper, 1.0, thick);

@@ -110,6 +110,9 @@
 				<variable type="float" name="uMwNoiseScale">
 					<row><value>15.9</value></row>
 				</variable>
+				<variable type="float" name="uMwDustNoiseScale">
+					<row><value>20.7</value></row>
+				</variable>
 				<variable type="float" name="uMwBright">
 					<row><value>0.45</value></row>
 				</variable>

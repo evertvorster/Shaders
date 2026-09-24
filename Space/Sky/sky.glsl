@@ -39,6 +39,7 @@ uniform float uMwFalloff;
 uniform float uMwSpan;
 uniform float uMwTaper;
 uniform float uMwNoiseScale;
+uniform float uMwDustNoiseScale;
 uniform float uMwBright;
 uniform float uMwDust;
 uniform float uMwDustWidth;
@@ -730,7 +731,7 @@ vec3 milkywaySky(vec3 dir, float pxPerDir, out vec3 transmittance) {
 	// Its OWN noise (different seed and frequency), so the lanes do not line up with the
 	// bright band's gaps. Full strength out to uMwDustFull, falling off to zero at
 	// uMwDustWidth: that is the "full strength band" and the falloff from it.
-	vec3 qD = vec3(along / 70.0, b, 5.0) * (uMwNoiseScale * 1.3) + vec3(31.0, 17.0, 0.0);
+	vec3 qD = vec3(along / 70.0, b, 5.0) * uMwDustNoiseScale + vec3(31.0, 17.0, 0.0);
 	float nDust = smoothstep(0.25, 0.75, mwFbm(qD, 4));
 
 	float wDark = uMwDustWidth * mix(1.0 - uMwTaper, 1.0, thick);
