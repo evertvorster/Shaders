@@ -28,7 +28,10 @@ const float uGalEmission   = 0.25;  // [0, 4]      how brightly the gas glows
 const float uGalDust       = 2.50;  // [0, 4]      dust extinction (reddens long paths)
 const float uGalTurb       = 0.80;  // [0, 1]      surface turbulence
 const float uGalNoiseScale = 0.50;  // [0.05, 2]   size of the turbulent structure
-const float uGalSteps      = 64.0;  // [16, 128]   march steps: quality vs speed
+const float uGalArmCount   = 2.00;  // [1, 6]      number of spiral arms
+const float uGalArmTwist   = 4.00;  // [1, 10]     how tightly the arms wind
+const float uGalArmStrength = 0.60; // [0, 1]      arm contrast
+const float uGalSteps      = 128.0; // [16, 192]   march steps: quality vs speed
 const float uGalBright     = 1.00;  // [0, 4]      exposure
 
 // ===== SHARED MATHS =============================================================
@@ -49,10 +52,10 @@ vec3 aces(vec3 x) {
 }
 
 void main() {
-	// Sit in the disk, off to one side, and look along the plane so the band crosses
-	// the view with the core off to one side. (Preview framing only.)
-	vec3 camPos = vec3(12.0, 0.3, 0.0);
-	vec3 targetDir = normalize(vec3(-0.55, 0.05, 1.0));
+	// Stand back and look at the galaxy as a distant object -- a saucer seen from
+	// outside, slightly above the plane. (Preview framing only.)
+	vec3 camPos = vec3(0.0, 26.0, 60.0);
+	vec3 targetDir = normalize(-camPos);
 	mat3 view = lookAt(targetDir, vec3(0.0, 1.0, 0.0));
 	float fov = 70.0;
 	vec3 dir = normalize(view * cameraRay(gl_FragCoord.xy, fov));

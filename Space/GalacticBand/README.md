@@ -45,9 +45,11 @@ The galactic centre is the world origin; the disk lies in the plane whose normal
 | `uGalPitch` / `uGalYaw` | 0 / 0 | tilt / yaw of the disk (0 = world XZ plane) |
 | `uGalEmission` | 0.25 | how brightly the gas glows |
 | `uGalDust` | 2.5 | dust extinction — reddens and darkens long paths |
-| `uGalTurb` | 0.8 | surface turbulence |
+| `uGalTurb` | 0.8 | surface turbulence (contrast-stretched fbm) |
 | `uGalNoiseScale` | 0.5 | size of the turbulent structure |
-| `uGalSteps` | 64 | march steps: quality vs speed |
+| `uGalArmCount` / `uGalArmTwist` | 2 / 4 | number of spiral arms and how tightly they wind |
+| `uGalArmStrength` | 0.6 | spiral-arm contrast |
+| `uGalSteps` | 128 | march steps: quality vs speed |
 | `uGalBright` | 1.0 | exposure |
 
 ## Running
@@ -59,11 +61,12 @@ shadered Space/GalacticBand/volumetric-galaxy.sprj
 godot-mono --path ~/Software/Projects/vs05-godot-shader-lab res://compositor_lab.tscn
 ```
 
-The compositor lab starts the camera **in the disk** (radius 12, in the plane) looking
-tangentially; fly around with WASD + Q/E.
+The compositor lab starts the camera **outside** the disk (at `(0, 26, 60)`), looking at
+it — a saucer seen at a slight angle. Fly in with WASD + Q/E and you end up inside the
+band.
 
-**Status:** first volumetric cut. It reads as a broad glowing band with the core to one
-side; the structure is still smooth and needs tuning (and more: spiral arms, star clouds,
-darker dust lanes). Defaults are a starting point.
+**Status:** reads as a distant saucer, not an envelope. Structure is still the weak
+point — the spiral arms and turbulence are in, but the long integration averages detail
+away, and the defaults need an eye on them.
 
 Licence: GPL-3.0 (see `LICENSE`).

@@ -101,8 +101,17 @@
 				<variable type="float" name="uGalNoiseScale">
 					<row><value>0.50</value></row>
 				</variable>
+				<variable type="float" name="uGalArmCount">
+					<row><value>2.00</value></row>
+				</variable>
+				<variable type="float" name="uGalArmTwist">
+					<row><value>4.00</value></row>
+				</variable>
+				<variable type="float" name="uGalArmStrength">
+					<row><value>0.60</value></row>
+				</variable>
 				<variable type="float" name="uGalSteps">
-					<row><value>64.0</value></row>
+					<row><value>128.0</value></row>
 				</variable>
 				<variable type="float" name="uGalBright">
 					<row><value>1.00</value></row>
