@@ -56,6 +56,8 @@ const float uFadeStars  = 1.00;  // [0, 1]   weight of the local starfield layer
 const float uFadeMilkyway = 1.00;  // [0, 1]   weight of the Milky Way layer
 
 // starfield knobs (Space/Starfield)
+const float uStarSize         = 1.00;  // [0.1, 5]   scales EVERY star
+const float uStarFieldSize    = 0.80;  // [0.05, 3]  scales the smallest (faintest) stars
 const float uStarDensity      = 41.0;  // [5, 400] field density: star count scales with its SQUARE
 const float uStarCluster      = 0.00;  // [0, 1]   clumping; 0 = perfectly uniform field
 const float uStarClusterScale = 4.00;  // [0.5, 20] clump size: lower = bigger clumps

@@ -47,8 +47,9 @@ view being rendered.
 | cubemap face (bake) | `2 / faceSize` |
 | glslviewer / SHADERed | `1 / (1.4 * resolution.y)` |
 
-Keeping star size in **pixels** is what makes the same shader look identical in the
-game, in the editor, and in a baked cubemap.
+**Star size is angular** (direction units), not pixels: a star smaller than a pixel is
+simply not seen, so the display's resolution thins the field. Author for infinite
+resolution. `pxPerDir` is still passed by the hosts but no longer governs star size.
 
 ### Compositing layers
 
@@ -73,7 +74,7 @@ exposed as sliders, because they describe stars rather than taste:
 
 | constant | meaning |
 |---|---|
-| `STAR_SIZE` | star radius in pixels at the low-magnitude end |
+| `STAR_ANG` | star angular radius in direction units; the faint end is `uStarFieldSize` × this |
 | `MAGNITUDE` | power-law exponent: higher = more faint stars, rarer bright |
 | `GLOW_SCALE` / `GLOW_POW` / `GLOW_GAIN` | glare disc size, selectivity, peak |
 | `P2`, `P3` / `W1`, `W2`, `W3` | density multipliers and weights of the three populations |
@@ -83,7 +84,9 @@ uniforms in the generated hosts:
 
 | variable | default | effect |
 |---|---|---|
-| `uStarDensity` | 60 | field density. Star count scales with its **square** |
+| `uStarSize` | 1 | scales **every** star (global size) |
+| `uStarFieldSize` | 0.8 | scales the **smallest** (faintest) stars |
+| `uStarDensity` | 60 | number of stars in the nearby field; count scales with its **square** |
 | `uStarCluster` | 0 | clumping. 0 = perfectly uniform field |
 | `uStarClusterScale` | 4 | clump size; lower = bigger clumps |
 | `uStarBright` | 1 | exposure |
@@ -105,8 +108,10 @@ with `-I`).
 
 Learned the hard way; each of these cost real time.
 
-1. **Stars smaller than a pixel vanish.** They fall between samples. So the radius is
-   floored near 1 px and magnitude rides on **brightness**, never on shrinking the star.
+1. **Stars smaller than a pixel vanish — by design.** Size is angular, so a finite
+   resolution simply drops the small ones. `uStarSize` scales all, `uStarFieldSize` the
+   faint end. Do **not** "fix" this by flooring to a pixel — that is exactly what made the
+   field's density change with resolution.
 2. **Cell edges clip stars.** A star near a cell boundary is cut off unless neighbouring
    cells are tested — done cheaply here, only when the pixel is near the shared face.
 3. **Channels clipping turns every star white.** Normalise each star's contribution to a

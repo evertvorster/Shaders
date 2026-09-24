@@ -38,6 +38,12 @@
 				<variable type="float" name="uFadeMilkyway">
 					<row><value>1.00</value></row>
 				</variable>
+				<variable type="float" name="uStarSize">
+					<row><value>1.00</value></row>
+				</variable>
+				<variable type="float" name="uStarFieldSize">
+					<row><value>0.80</value></row>
+				</variable>
 				<variable type="float" name="uStarDensity">
 					<row><value>41.0</value></row>
 				</variable>

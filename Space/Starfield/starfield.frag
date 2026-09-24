@@ -61,6 +61,8 @@ uniform vec2  u_mouse;
 // The knobs. Each is annotated `[min, max]` for the generated hosts. In this file
 // (the glslviewer build) they are `const` because glslviewer cannot set custom
 // uniforms; the builder promotes them to real uniforms for SHADERed and Godot.
+const float uStarSize         = 1.00;  // [0.1, 5]   scales EVERY star
+const float uStarFieldSize    = 0.80;  // [0.05, 3]  scales the smallest (faintest) stars
 const float uStarDensity      = 60.0;  // [5, 400] field density: star count scales with its SQUARE
 const float uStarCluster      = 0.00;  // [0, 1] clumping; 0 = perfectly uniform field
 const float uStarClusterScale = 4.00;  // [0.5, 20] clump size: lower = bigger clumps

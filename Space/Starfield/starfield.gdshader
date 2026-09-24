@@ -10,6 +10,8 @@
 shader_type spatial;
 render_mode cull_front, unshaded, depth_draw_never, depth_test_disabled;
 
+uniform float uStarSize : hint_range(0.1, 5, 0.01) = 1.00;  // scales EVERY star
+uniform float uStarFieldSize : hint_range(0.05, 3, 0.01) = 0.80;  // scales the smallest (faintest) stars
 uniform float uStarDensity : hint_range(5, 400, 1) = 60.0;  // field density: star count scales with its SQUARE
 uniform float uStarCluster : hint_range(0, 1, 0.01) = 0.00;  // clumping; 0 = perfectly uniform field
 uniform float uStarClusterScale : hint_range(0.5, 20, 0.1) = 4.00;  // clump size: lower = bigger clumps
@@ -36,7 +38,9 @@ uniform float uPxPerDir : hint_range(0.00005, 0.02, 0.00005) = 0.0013;
 // ===== PHYSICS ==================================================================
 // Constants: these describe stars, not taste. They are the same in every host, so
 // they are NOT exposed as sliders.
-const float STAR_SIZE  = 1.10;  // star radius in pixels at the low-magnitude end
+const float STAR_ANG   = 0.0013;  // star angular radius, in DIRECTION UNITS (not pixels).
+                                  // The smallest star is uStarFieldSize x this; uStarSize
+                                  // scales them all. A star below a pixel is just not seen.
 const float MAGNITUDE  = 2.60;  // power law: higher = more faint stars, rarer bright
 const float GLOW_SCALE = 2.20;  // radius of the glare disc, x the star radius (tight)
 const float GLOW_POW   = 10.0;  // how sharply glare concentrates on the brightest
@@ -147,7 +151,10 @@ vec3 starPopulation(vec3 dir, float cells, float pxDir, float count, float seed)
 	// A neighbouring cell matters only when this pixel is within a star radius of the
 	// shared face -- rare, since the radius is ~1 px and a cell is tens of px wide.
 	// That is what avoids clipped stars without paying for 27 cells every pixel.
-	float rrMax = STAR_SIZE * 1.45 * pxDir * cells;
+	// Angular size, NOT pixels: a star smaller than a pixel is simply not seen, so the
+	// display's resolution thins the field by itself. This also makes the culling below
+	// resolution-independent (it used to scale with pxDir and drop stars as res rose).
+	float rrMax = uStarSize * (uStarFieldSize + 1.5) * STAR_ANG * cells;
 
 	for (int ox = -1; ox <= 1; ox++) {
 		if (float(ox) == -1.0 && fr.x >= rrMax) continue;
@@ -165,8 +172,10 @@ vec3 starPopulation(vec3 dir, float cells, float pxDir, float count, float seed)
 				vec3 P = c + 0.15 + 0.70 * hash33(c + seed * 1.7);
 
 				float m   = pow(hash13(c + seed * 3.1), MAGNITUDE);
-				float rpx = STAR_SIZE * (0.95 + 0.45 * m);
-				float rr  = max(rpx * pxDir * cells, 1e-9);
+				// uStarSize scales every star; uStarFieldSize sets the faint end; brighter
+				// stars (larger m) are drawn larger.
+				float grow = uStarSize * (uStarFieldSize + 1.5 * m) * STAR_ANG;
+				float rr   = max(grow * cells, 1e-9);
 
 				float t    = length(p - P) / rr;
 				float core = max(0.0, 1.0 - t);

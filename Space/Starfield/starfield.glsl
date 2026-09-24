@@ -10,6 +10,8 @@ uniform vec2  iMouse;
 
 // The knob values live in starfield.sprj, not here: GLSL uniforms cannot have
 // initialisers, which is why SHADERed shows them as variables you can edit.
+uniform float uStarSize;
+uniform float uStarFieldSize;
 uniform float uStarDensity;
 uniform float uStarCluster;
 uniform float uStarClusterScale;
@@ -33,7 +35,9 @@ uniform float uStarCount;
 // ===== PHYSICS ==================================================================
 // Constants: these describe stars, not taste. They are the same in every host, so
 // they are NOT exposed as sliders.
-const float STAR_SIZE  = 1.10;  // star radius in pixels at the low-magnitude end
+const float STAR_ANG   = 0.0013;  // star angular radius, in DIRECTION UNITS (not pixels).
+                                  // The smallest star is uStarFieldSize x this; uStarSize
+                                  // scales them all. A star below a pixel is just not seen.
 const float MAGNITUDE  = 2.60;  // power law: higher = more faint stars, rarer bright
 const float GLOW_SCALE = 2.20;  // radius of the glare disc, x the star radius (tight)
 const float GLOW_POW   = 10.0;  // how sharply glare concentrates on the brightest
@@ -144,7 +148,10 @@ vec3 starPopulation(vec3 dir, float cells, float pxDir, float count, float seed)
 	// A neighbouring cell matters only when this pixel is within a star radius of the
 	// shared face -- rare, since the radius is ~1 px and a cell is tens of px wide.
 	// That is what avoids clipped stars without paying for 27 cells every pixel.
-	float rrMax = STAR_SIZE * 1.45 * pxDir * cells;
+	// Angular size, NOT pixels: a star smaller than a pixel is simply not seen, so the
+	// display's resolution thins the field by itself. This also makes the culling below
+	// resolution-independent (it used to scale with pxDir and drop stars as res rose).
+	float rrMax = uStarSize * (uStarFieldSize + 1.5) * STAR_ANG * cells;
 
 	for (int ox = -1; ox <= 1; ox++) {
 		if (float(ox) == -1.0 && fr.x >= rrMax) continue;
@@ -162,8 +169,10 @@ vec3 starPopulation(vec3 dir, float cells, float pxDir, float count, float seed)
 				vec3 P = c + 0.15 + 0.70 * hash33(c + seed * 1.7);
 
 				float m   = pow(hash13(c + seed * 3.1), MAGNITUDE);
-				float rpx = STAR_SIZE * (0.95 + 0.45 * m);
-				float rr  = max(rpx * pxDir * cells, 1e-9);
+				// uStarSize scales every star; uStarFieldSize sets the faint end; brighter
+				// stars (larger m) are drawn larger.
+				float grow = uStarSize * (uStarFieldSize + 1.5 * m) * STAR_ANG;
+				float rr   = max(grow * cells, 1e-9);
 
 				float t    = length(p - P) / rr;
 				float core = max(0.0, 1.0 - t);

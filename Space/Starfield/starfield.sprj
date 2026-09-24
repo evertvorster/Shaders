@@ -26,6 +26,12 @@
 				<variable type="float2" name="iResolution" system="ViewportSize" />
 				<variable type="float2" name="iMouse" system="MousePosition" />
 				<variable type="float" name="iTime" system="Time" />
+				<variable type="float" name="uStarSize">
+					<row><value>1.00</value></row>
+				</variable>
+				<variable type="float" name="uStarFieldSize">
+					<row><value>0.80</value></row>
+				</variable>
 				<variable type="float" name="uStarDensity">
 					<row><value>60.0</value></row>
 				</variable>

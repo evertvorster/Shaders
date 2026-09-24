@@ -26,7 +26,8 @@ FIFO="$(mktemp -u /tmp/glfifo.XXXXXX)"; mkfifo "$FIFO"
 rm -f "$OUT"
 ( sleep "${PREVIEW_DELAY:-4}"; printf 'screenshot,%s\n' "$OUT" > "$FIFO"; sleep "${PREVIEW_SETTLE:-4}" ) &
 FEEDER=$!
-glslViewer "$TMP" -I"$ROOT" --noncurses --headless < "$FIFO" >/tmp/preview.glslviewer.log 2>&1 &
+[ -n "${PREVIEW_SIZE:-}" ] && SZ="-s $PREVIEW_SIZE $PREVIEW_SIZE" || SZ=""
+glslViewer "$TMP" -I"$ROOT" --noncurses --headless $SZ < "$FIFO" >/tmp/preview.glslviewer.log 2>&1 &
 GL=$!
 for _ in $(seq 1 60); do [ -s "$OUT" ] && break; sleep 0.5; done
 sleep 0.5
