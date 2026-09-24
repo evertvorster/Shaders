@@ -26,6 +26,9 @@
 				<variable type="float2" name="iResolution" system="ViewportSize" />
 				<variable type="float2" name="iMouse" system="MousePosition" />
 				<variable type="float" name="iTime" system="Time" />
+				<variable type="float4x4" name="uView" system="View" />
+				<variable type="float4x4" name="uProj" system="Projection" />
+				<variable type="float3" name="uCamPos" system="CameraPosition3" />
 				<variable type="float" name="uDensity">
 					<row><value>1.50</value></row>
 				</variable>
@@ -50,6 +53,9 @@
 				<variable type="float" name="uNoiseScale">
 					<row><value>1.00</value></row>
 				</variable>
+				<variable type="float" name="uSteps">
+					<row><value>16.0</value></row>
+				</variable>
 			</variables>
 			<macros />
 		</pass>
@@ -61,9 +67,9 @@
 		<entry type="file" name="gyroid-clouds" shader="vs" />
 		<entry type="file" name="gyroid-clouds" shader="ps" />
 		<entry type="camera" fp="false">
-			<distance>19</distance>
-			<pitch>89</pitch>
-			<yaw>3</yaw>
+			<distance>3</distance>
+			<pitch>20</pitch>
+			<yaw>45</yaw>
 			<roll>360</roll>
 		</entry>
 		<entry type="clearcolor" r="0" g="0" b="0" a="1" />

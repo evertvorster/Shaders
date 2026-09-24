@@ -18,6 +18,7 @@ uniform float uSunAngle : hint_range(0, 6.28, 0.01) = 2.00;  // where the sun si
 uniform float uSunHeight : hint_range(-1, 1, 0.01) = 0.50;  // sun elevation
 uniform float uLocalStars : hint_range(0, 1, 0.01) = 1.00;  // stars embedded in the gas, lighting it
 uniform float uNoiseScale : hint_range(0.05, 4, 0.01) = 1.00;  // size of the cloud detail
+uniform float uSteps : hint_range(6, 64, 0.1) = 16.0;  // march steps: quality vs speed
 
 uniform vec3  uCamPos = vec3(0.0, 0.0, 0.0);
 uniform float uPxPerDir : hint_range(0.00005, 0.02, 0.00005) = 0.0013;
@@ -32,9 +33,7 @@ const vec3  SIGMA_E = SIGMA_A;                          // extinction
 const float VOLUME_EXTENT = 10.0;                       // half-size of the cube
 const float SUN_POWER     = 200.0;
 
-#define STEPS_PRIMARY 32   // samples along the view ray (quality/cost dial)
-#define STEPS_LIGHT    8    // samples along the shadow ray
-#define GYROID_OCTAVES 8    // fbm octaves in the density field
+#define GYROID_OCTAVES 6    // fbm octaves in the density field (cost driver)
 
 // ===== SHARED MATHS =============================================================
 // Everything from here to the HOST marker is host-independent and is copied verbatim
@@ -211,9 +210,10 @@ vec3 lightRay(vec3 p, float mu, vec3 sunDirection) {
 	if (hit.x < hit.y && hit.y > 0.0) {
 		lightRayDistance = hit.y - max(hit.x, 0.0);
 	}
-	float stepL = lightRayDistance / float(STEPS_LIGHT);
+	int lsteps = max(3, int(uSteps * 0.25));
+	float stepL = lightRayDistance / float(lsteps);
 	float lightRayDensity = 0.0;
-	for (int j = 0; j < STEPS_LIGHT; j++) {
+	for (int j = 0; j < lsteps; j++) {
 		lightRayDensity += cloudDensity(p + sunDirection * float(j) * stepL);
 	}
 	vec3 beersLaw = multipleOctaves(lightRayDensity, mu, stepL);
@@ -240,7 +240,8 @@ vec3 mainRay(vec3 org, vec3 dir, vec3 sunDirection, out vec3 totalTransmittance,
 	float distToEnd   = hit.y;
 	if (!(distToEnd > distToStart) || distToEnd <= 0.0) return colour;
 
-	float stepS = (distToEnd - distToStart) / float(STEPS_PRIMARY);
+	int steps = int(uSteps);
+	float stepS = (distToEnd - distToStart) / float(steps);
 	distToStart += stepS * offset;
 
 	float dist = distToStart;
@@ -249,7 +250,7 @@ vec3 mainRay(vec3 org, vec3 dir, vec3 sunDirection, out vec3 totalTransmittance,
 	float phaseFunction = mix(hgPhase(-0.3, mu), hgPhase(0.3, mu), 0.7);
 	vec3 sunLight = vec3(SUN_POWER);
 
-	for (int i = 0; i < STEPS_PRIMARY; i++) {
+	for (int i = 0; i < steps; i++) {
 		float density = cloudDensity(p);
 		if (density > 0.0) {
 			vec3 sampleSigmaS = SIGMA_S * density;
@@ -259,7 +260,7 @@ vec3 mainRay(vec3 org, vec3 dir, vec3 sunDirection, out vec3 totalTransmittance,
 			// clouds they sit in, not empty space).
 			vec3 ambient = vec3(0.0);
 			if (uLocalStars > 0.0) {
-				ambient = uLocalStars * (localStars(p) + 2.0 * localStars(1.5 * p + 17.51));
+				ambient = uLocalStars * localStars(p);
 				ambient *= smoothstep(1e-3, 2e-3, density);
 			}
 

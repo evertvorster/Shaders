@@ -78,6 +78,15 @@ Render a still to look at (headless, on the GPU):
 Tools/preview.sh Space/Nebula/gyroid-clouds.frag /tmp/out.png [uDensity=4 ...]
 ```
 
+## SHADERed notes
+
+- **Variables are not automatic sliders.** They live in *right-click the shader pass →
+  Variables*; pin the ones you want into the **Pinned** window with `+`.
+- **SHADERed's camera only moves SHADERed's camera.** A shader that computes its own camera
+  (like the nebulae) ignores the arcball entirely. To let it look around, drive the ray
+  from SHADERed's system variables — `View`, `Projection`, `CameraPosition3` — which is
+  what `build_nebula.py` emits. (The starfield doesn't need this: it is direction-only.)
+
 GLSL outputs are verified with `glslangValidator`, which checks GLSL without a GPU.
 Godot outputs are checked structurally, since Godot's dialect is not valid GLSL.
 

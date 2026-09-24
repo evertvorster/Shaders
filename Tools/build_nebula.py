@@ -88,19 +88,6 @@ def godot_step(lo, hi):
     return 10.0 ** math.floor(math.log10(span / 100.0))
 
 
-# The camera + tone-map helpers the generated hosts need, because the source keeps them
-# in its HOST section (which the builder replaces). Kept identical to the source.
-CAMERA_HELPERS = """vec3 cameraRay(vec2 fragCoord, vec2 resolution, float fovDeg) {
-	vec2 xy = fragCoord - resolution * 0.5;
-	float z = (0.5 * resolution.y) / tan(radians(fovDeg) * 0.5);
-	return normalize(vec3(xy, -z));
-}
-
-vec3 aces(vec3 x) {
-	return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0);
-}"""
-
-
 def emit_shadered(physics, shared, variables):
     uni = "\n".join("uniform float %s;" % v["name"] for v in variables)
     return f"""#version 330
@@ -113,27 +100,36 @@ uniform vec2  iResolution;
 uniform float iTime;
 uniform vec2  iMouse;
 
+// SHADERed system variables: driven by SHADERed's own preview camera, so the arcball
+// (right-drag / scroll) and the first-person camera actually look around the volume.
+uniform mat4 uView;
+uniform mat4 uProj;
+uniform vec3 uCamPos;
+
 // The knob values live in the .sprj, not here: GLSL uniforms cannot have initialisers,
-// which is why SHADERed shows them as variables you can edit.
+// which is why SHADERed shows them as variables you can edit (right-click the pass ->
+// Variables, then pin them with +).
 {uni}
 
 {physics}
 
 {shared}
 
-{CAMERA_HELPERS}
+vec3 aces(vec3 x) {{
+	return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0);
+}}
 
 void main() {{
-	// Fixed camera just off the volume centre, looking outward (reproducible).
-	vec3 camPos = vec3(0.40, 0.15, 0.0);
-	vec3 targetDir = normalize(camPos);
-	mat3 view = lookAt(targetDir, vec3(0.0, 1.0, 0.0));
-	float fov = 55.0;
-	vec3 dir = normalize(view * cameraRay(gl_FragCoord.xy, iResolution, fov));
-	float pxPerDir = 2.0 * tan(radians(fov * 0.5)) / iResolution.y;
+	vec2 ndc = (gl_FragCoord.xy / iResolution.xy) * 2.0 - 1.0;
+
+	// View-space ray straight from the projection matrix (no fov/aspect guesswork),
+	// rotated into the world by the inverse view rotation (a transpose).
+	vec3 viewRay = vec3(ndc.x / uProj[0][0], ndc.y / uProj[1][1], -1.0);
+	vec3 dir = normalize(transpose(mat3(uView)) * viewRay);
+	float pxPerDir = 2.0 / (uProj[1][1] * iResolution.y);
 
 	vec3 transmittance;
-	vec3 col = nebulaSky(camPos, dir, pxPerDir, transmittance);
+	vec3 col = nebulaSky(uCamPos, dir, pxPerDir, transmittance);
 
 	col = aces(col);
 	outColor = vec4(pow(col, vec3(0.4545)), 1.0);
@@ -173,7 +169,10 @@ def emit_sprj(variables, base):
 \t\t\t\t<variable type="float4x4" name="matGeo" system="GeometryTransform" />
 \t\t\t\t<variable type="float2" name="iResolution" system="ViewportSize" />
 \t\t\t\t<variable type="float2" name="iMouse" system="MousePosition" />
-\t\t\t\t<variable type="float" name="iTime" system="Time" />{var_xml}
+\t\t\t\t<variable type="float" name="iTime" system="Time" />
+\t\t\t\t<variable type="float4x4" name="uView" system="View" />
+\t\t\t\t<variable type="float4x4" name="uProj" system="Projection" />
+\t\t\t\t<variable type="float3" name="uCamPos" system="CameraPosition3" />{var_xml}
 \t\t\t</variables>
 \t\t\t<macros />
 \t\t</pass>
@@ -185,9 +184,9 @@ def emit_sprj(variables, base):
 \t\t<entry type="file" name="{base}" shader="vs" />
 \t\t<entry type="file" name="{base}" shader="ps" />
 \t\t<entry type="camera" fp="false">
-\t\t\t<distance>19</distance>
-\t\t\t<pitch>89</pitch>
-\t\t\t<yaw>3</yaw>
+\t\t\t<distance>3</distance>
+\t\t\t<pitch>20</pitch>
+\t\t\t<yaw>45</yaw>
 \t\t\t<roll>360</roll>
 \t\t</entry>
 \t\t<entry type="clearcolor" r="0" g="0" b="0" a="1" />

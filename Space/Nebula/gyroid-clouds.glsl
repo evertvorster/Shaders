@@ -8,8 +8,15 @@ uniform vec2  iResolution;
 uniform float iTime;
 uniform vec2  iMouse;
 
+// SHADERed system variables: driven by SHADERed's own preview camera, so the arcball
+// (right-drag / scroll) and the first-person camera actually look around the volume.
+uniform mat4 uView;
+uniform mat4 uProj;
+uniform vec3 uCamPos;
+
 // The knob values live in the .sprj, not here: GLSL uniforms cannot have initialisers,
-// which is why SHADERed shows them as variables you can edit.
+// which is why SHADERed shows them as variables you can edit (right-click the pass ->
+// Variables, then pin them with +).
 uniform float uDensity;
 uniform float uHaze;
 uniform float uStructure;
@@ -18,6 +25,7 @@ uniform float uSunAngle;
 uniform float uSunHeight;
 uniform float uLocalStars;
 uniform float uNoiseScale;
+uniform float uSteps;
 
 // ===== PHYSICS ==================================================================
 // The gas, the sun and the box. Constants, not sliders.
@@ -29,9 +37,7 @@ const vec3  SIGMA_E = SIGMA_A;                          // extinction
 const float VOLUME_EXTENT = 10.0;                       // half-size of the cube
 const float SUN_POWER     = 200.0;
 
-#define STEPS_PRIMARY 32   // samples along the view ray (quality/cost dial)
-#define STEPS_LIGHT    8    // samples along the shadow ray
-#define GYROID_OCTAVES 8    // fbm octaves in the density field
+#define GYROID_OCTAVES 6    // fbm octaves in the density field (cost driver)
 
 // ===== SHARED MATHS =============================================================
 // Everything from here to the HOST marker is host-independent and is copied verbatim
@@ -208,9 +214,10 @@ vec3 lightRay(vec3 p, float mu, vec3 sunDirection) {
 	if (hit.x < hit.y && hit.y > 0.0) {
 		lightRayDistance = hit.y - max(hit.x, 0.0);
 	}
-	float stepL = lightRayDistance / float(STEPS_LIGHT);
+	int lsteps = max(3, int(uSteps * 0.25));
+	float stepL = lightRayDistance / float(lsteps);
 	float lightRayDensity = 0.0;
-	for (int j = 0; j < STEPS_LIGHT; j++) {
+	for (int j = 0; j < lsteps; j++) {
 		lightRayDensity += cloudDensity(p + sunDirection * float(j) * stepL);
 	}
 	vec3 beersLaw = multipleOctaves(lightRayDensity, mu, stepL);
@@ -237,7 +244,8 @@ vec3 mainRay(vec3 org, vec3 dir, vec3 sunDirection, out vec3 totalTransmittance,
 	float distToEnd   = hit.y;
 	if (!(distToEnd > distToStart) || distToEnd <= 0.0) return colour;
 
-	float stepS = (distToEnd - distToStart) / float(STEPS_PRIMARY);
+	int steps = int(uSteps);
+	float stepS = (distToEnd - distToStart) / float(steps);
 	distToStart += stepS * offset;
 
 	float dist = distToStart;
@@ -246,7 +254,7 @@ vec3 mainRay(vec3 org, vec3 dir, vec3 sunDirection, out vec3 totalTransmittance,
 	float phaseFunction = mix(hgPhase(-0.3, mu), hgPhase(0.3, mu), 0.7);
 	vec3 sunLight = vec3(SUN_POWER);
 
-	for (int i = 0; i < STEPS_PRIMARY; i++) {
+	for (int i = 0; i < steps; i++) {
 		float density = cloudDensity(p);
 		if (density > 0.0) {
 			vec3 sampleSigmaS = SIGMA_S * density;
@@ -256,7 +264,7 @@ vec3 mainRay(vec3 org, vec3 dir, vec3 sunDirection, out vec3 totalTransmittance,
 			// clouds they sit in, not empty space).
 			vec3 ambient = vec3(0.0);
 			if (uLocalStars > 0.0) {
-				ambient = uLocalStars * (localStars(p) + 2.0 * localStars(1.5 * p + 17.51));
+				ambient = uLocalStars * localStars(p);
 				ambient *= smoothstep(1e-3, 2e-3, density);
 			}
 
@@ -288,27 +296,21 @@ vec3 nebulaSky(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
 	return colour * uBright;
 }
 
-vec3 cameraRay(vec2 fragCoord, vec2 resolution, float fovDeg) {
-	vec2 xy = fragCoord - resolution * 0.5;
-	float z = (0.5 * resolution.y) / tan(radians(fovDeg) * 0.5);
-	return normalize(vec3(xy, -z));
-}
-
 vec3 aces(vec3 x) {
 	return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0);
 }
 
 void main() {
-	// Fixed camera just off the volume centre, looking outward (reproducible).
-	vec3 camPos = vec3(0.40, 0.15, 0.0);
-	vec3 targetDir = normalize(camPos);
-	mat3 view = lookAt(targetDir, vec3(0.0, 1.0, 0.0));
-	float fov = 55.0;
-	vec3 dir = normalize(view * cameraRay(gl_FragCoord.xy, iResolution, fov));
-	float pxPerDir = 2.0 * tan(radians(fov * 0.5)) / iResolution.y;
+	vec2 ndc = (gl_FragCoord.xy / iResolution.xy) * 2.0 - 1.0;
+
+	// View-space ray straight from the projection matrix (no fov/aspect guesswork),
+	// rotated into the world by the inverse view rotation (a transpose).
+	vec3 viewRay = vec3(ndc.x / uProj[0][0], ndc.y / uProj[1][1], -1.0);
+	vec3 dir = normalize(transpose(mat3(uView)) * viewRay);
+	float pxPerDir = 2.0 / (uProj[1][1] * iResolution.y);
 
 	vec3 transmittance;
-	vec3 col = nebulaSky(camPos, dir, pxPerDir, transmittance);
+	vec3 col = nebulaSky(uCamPos, dir, pxPerDir, transmittance);
 
 	col = aces(col);
 	outColor = vec4(pow(col, vec3(0.4545)), 1.0);
