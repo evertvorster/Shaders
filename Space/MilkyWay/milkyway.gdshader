@@ -7,20 +7,20 @@ uniform float uMwPitch : hint_range(0, 3.14, 0.01) = 0.00;  // tilt of the galac
 uniform float uMwYaw : hint_range(0, 6.28, 0.01) = 0.00;  // yaw of the plane
 uniform float uMwCoreAngle : hint_range(0, 6.28, 0.01) = 0.03;  // where the core sits along the band
 uniform float uMwDistance : hint_range(0.25, 4, 0.01) = 0.90;  // scale every element: further / nearer the centre
-uniform float uMwWidth : hint_range(0.02, 0.6, 0.001) = 0.10;  // bright band width
+uniform float uMwWidth : hint_range(0.02, 0.6, 0.001) = 0.06;  // bright band width
 uniform float uMwFalloff : hint_range(0.5, 8, 0.01) = 2.00;  // cross-band falloff: 2 = gaussian, higher = flatter then sharper
-uniform float uMwSpan : hint_range(15, 180, 1) = 118.0;  // half-width of the arc, in degrees
-uniform float uMwTaper : hint_range(0, 1, 0.01) = 0.20;  // how much thinner the bands get at the sides
-uniform float uMwNoiseScale : hint_range(0.5, 60, 0.1) = 15.9;  // size of the bright-band turbulence
-uniform float uMwDustNoiseScale : hint_range(0.5, 60, 0.1) = 20.7;  // size of the DUST turbulence (its own)
+uniform float uMwSpan : hint_range(15, 180, 1) = 114.0;  // half-width of the arc, in degrees
+uniform float uMwTaper : hint_range(0, 1, 0.01) = 0.45;  // how much thinner the bands get at the sides
+uniform float uMwNoiseScale : hint_range(0.5, 60, 0.1) = 17.0;  // size of the bright-band turbulence
+uniform float uMwDustNoiseScale : hint_range(0.5, 60, 0.1) = 6.9;  // size of the DUST turbulence (its own)
 uniform float uMwBright : hint_range(0, 4, 0.01) = 0.45;  // bright band brightness
 uniform float uMwDust : hint_range(0, 12, 0.1) = 4.00;  // dark band extinction
-uniform float uMwDustWidth : hint_range(0.01, 0.4, 0.001) = 0.10;  // dark band outer width
-uniform float uMwDustFull : hint_range(0, 0.4, 0.001) = 0.02;  // width at full strength, then falls off to the outer width
-uniform float uMwDustOffset : hint_range(-0.15, 0.15, 0.001) = 0.02;  // dark band offset from the midplane
-uniform float uMwDustTint : hint_range(0, 2, 0.01) = 1.00;  // how brown the dark band is (0 = black)
-uniform float uMwCore : hint_range(0, 4, 0.01) = 2.78;  // core brightness
-uniform float uMwCoreSize : hint_range(0.05, 0.8, 0.001) = 0.15;  // core angular size
+uniform float uMwDustWidth : hint_range(0.01, 0.4, 0.001) = 0.12;  // dark band outer width
+uniform float uMwDustFull : hint_range(0, 0.4, 0.001) = 0.00;  // width at full strength, then falls off to the outer width
+uniform float uMwDustOffset : hint_range(-0.15, 0.15, 0.001) = 0.01;  // dark band offset from the midplane
+uniform float uMwDustTint : hint_range(0, 2, 0.01) = 0.00;  // how brown the dark band is (0 = black)
+uniform float uMwCore : hint_range(0, 4, 0.01) = 0.61;  // core brightness
+uniform float uMwCoreSize : hint_range(0.05, 0.8, 0.001) = 0.12;  // core angular size
 
 uniform float uPxPerDir : hint_range(0.00005, 0.02, 0.00005) = 0.0013;
 

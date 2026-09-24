@@ -96,22 +96,22 @@
 					<row><value>0.90</value></row>
 				</variable>
 				<variable type="float" name="uMwWidth">
-					<row><value>0.10</value></row>
+					<row><value>0.06</value></row>
 				</variable>
 				<variable type="float" name="uMwFalloff">
 					<row><value>2.00</value></row>
 				</variable>
 				<variable type="float" name="uMwSpan">
-					<row><value>118.0</value></row>
+					<row><value>114.0</value></row>
 				</variable>
 				<variable type="float" name="uMwTaper">
-					<row><value>0.20</value></row>
+					<row><value>0.45</value></row>
 				</variable>
 				<variable type="float" name="uMwNoiseScale">
-					<row><value>15.9</value></row>
+					<row><value>17.0</value></row>
 				</variable>
 				<variable type="float" name="uMwDustNoiseScale">
-					<row><value>20.7</value></row>
+					<row><value>6.9</value></row>
 				</variable>
 				<variable type="float" name="uMwBright">
 					<row><value>0.45</value></row>
@@ -120,22 +120,22 @@
 					<row><value>4.00</value></row>
 				</variable>
 				<variable type="float" name="uMwDustWidth">
-					<row><value>0.10</value></row>
+					<row><value>0.12</value></row>
 				</variable>
 				<variable type="float" name="uMwDustFull">
-					<row><value>0.02</value></row>
+					<row><value>0.00</value></row>
 				</variable>
 				<variable type="float" name="uMwDustOffset">
-					<row><value>0.02</value></row>
+					<row><value>0.01</value></row>
 				</variable>
 				<variable type="float" name="uMwDustTint">
-					<row><value>1.00</value></row>
+					<row><value>0.00</value></row>
 				</variable>
 				<variable type="float" name="uMwCore">
-					<row><value>2.78</value></row>
+					<row><value>0.61</value></row>
 				</variable>
 				<variable type="float" name="uMwCoreSize">
-					<row><value>0.15</value></row>
+					<row><value>0.12</value></row>
 				</variable>
 			</variables>
 			<macros />
