@@ -95,6 +95,9 @@
 				<variable type="float" name="uMwWidth">
 					<row><value>0.10</value></row>
 				</variable>
+				<variable type="float" name="uMwSpan">
+					<row><value>70.0</value></row>
+				</variable>
 				<variable type="float" name="uMwTaper">
 					<row><value>0.60</value></row>
 				</variable>

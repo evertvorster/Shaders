@@ -55,14 +55,16 @@ vec3 milkywaySky(vec3 dir, float pxPerDir, out vec3 transmittance) {
 	float b = dot(d, pole);                 // across the band
 	float c = dot(d, coreDir);
 	float s = dot(d, sideDir);
-	float a = atan(s, c) * (2.0 / PI);      // along it: 0 at the centre, +/-1 at the ends
+	float deg = degrees(abs(atan(s, c)));   // along it: 0 at the centre, up to 180 out
 
-	float aa = abs(a);
-	float present = smoothstep(uMwSpan, uMwSpan * 0.45, aa);  // the arc: how far it stretches
-	float thick   = smoothstep(1.0, 0.35, aa);                // thick in the middle, thin at the sides
+	// The arc, in DEGREES: uMwSpan is its half-width, and the band fades past it. Working
+	// in degrees (not a normalised 0..1) keeps both transitions inside the view, where a
+	// slider can actually be seen to do something.
+	float present = smoothstep(uMwSpan, uMwSpan * 0.5, deg);
+	float thick   = smoothstep(uMwSpan * 0.6, uMwSpan * 0.2, deg);   // thick middle, thin sides
 
-	// Turbulence in BAND coordinates (a, b), so the structure stretches along the band.
-	vec3 q = vec3(a, b, 0.0) * uMwNoiseScale;
+	// Turbulence in BAND coordinates (along, b), so the structure stretches along the band.
+	vec3 q = vec3(deg / 90.0, b, 0.0) * uMwNoiseScale;
 	float n = smoothstep(0.32, 0.78, mwFbm(q + 3.0, 5));
 
 	// ---- 2. the bright turbulent band ----

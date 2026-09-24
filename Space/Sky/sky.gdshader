@@ -27,9 +27,10 @@ uniform float uNebSteps : hint_range(6, 64, 0.1) = 16.0;  // march steps: qualit
 uniform float uMwPitch : hint_range(0, 3.14, 0.01) = 0.00;  // tilt of the galactic plane
 uniform float uMwYaw : hint_range(0, 6.28, 0.01) = 0.00;  // yaw of the plane
 uniform float uMwCoreAngle : hint_range(0, 6.28, 0.01) = 0.00;  // where the core sits along the band
-uniform float uMwWidth : hint_range(0.02, 0.5, 0.001) = 0.10;  // bright band thickness (at the core)
-uniform float uMwTaper : hint_range(0, 1, 0.01) = 0.60;  // how much thinner the bands get at the tips
-uniform float uMwNoiseScale : hint_range(0.5, 8, 0.01) = 2.50;  // size of the turbulence
+uniform float uMwWidth : hint_range(0.02, 0.6, 0.001) = 0.10;  // bright band thickness (at the centre)
+uniform float uMwSpan : hint_range(15, 180, 1) = 70.0;  // half-width of the arc, in degrees
+uniform float uMwTaper : hint_range(0, 1, 0.01) = 0.60;  // how much thinner the bands get at the sides
+uniform float uMwNoiseScale : hint_range(0.5, 40, 0.1) = 2.50;  // size of the turbulence
 uniform float uMwBright : hint_range(0, 4, 0.01) = 1.00;  // bright band brightness
 uniform float uMwDust : hint_range(0, 4, 0.01) = 1.20;  // dark band extinction
 uniform float uMwDustWidth : hint_range(0.01, 0.3, 0.001) = 0.055;  // dark band thickness
@@ -688,14 +689,16 @@ vec3 milkywaySky(vec3 dir, float pxPerDir, out vec3 transmittance) {
 	float b = dot(d, pole);                 // across the band
 	float c = dot(d, coreDir);
 	float s = dot(d, sideDir);
-	float a = atan(s, c) * (2.0 / PI);      // along it: 0 at the centre, +/-1 at the ends
+	float deg = degrees(abs(atan(s, c)));   // along it: 0 at the centre, up to 180 out
 
-	float aa = abs(a);
-	float present = smoothstep(1.0, 0.45, aa);   // the arc: gone beyond ~90 degrees
-	float thick   = smoothstep(1.0, 0.35, aa);   // thick in the middle, thin at the sides
+	// The arc, in DEGREES: uMwSpan is its half-width, and the band fades past it. Working
+	// in degrees (not a normalised 0..1) keeps both transitions inside the view, where a
+	// slider can actually be seen to do something.
+	float present = smoothstep(uMwSpan, uMwSpan * 0.5, deg);
+	float thick   = smoothstep(uMwSpan * 0.6, uMwSpan * 0.2, deg);   // thick middle, thin sides
 
-	// Turbulence in BAND coordinates (a, b), so the structure stretches along the band.
-	vec3 q = vec3(a, b, 0.0) * uMwNoiseScale;
+	// Turbulence in BAND coordinates (along, b), so the structure stretches along the band.
+	vec3 q = vec3(deg / 90.0, b, 0.0) * uMwNoiseScale;
 	float n = smoothstep(0.32, 0.78, mwFbm(q + 3.0, 5));
 
 	// ---- 2. the bright turbulent band ----
