@@ -13,9 +13,9 @@ render_mode cull_front, unshaded, depth_draw_never, depth_test_disabled;
 uniform float uNebDensity : hint_range(0.1, 20, 0.1) = 0.60;  // overall gas density
 uniform float uNebHaze : hint_range(0, 2, 0.01) = 0.40;  // soft haze filling the volume
 uniform float uNebStructure : hint_range(0, 3, 0.01) = 1.50;  // filamentary cloud structure
-uniform vec3 uNebGlowColour : source_color = vec3(1.00, 1.00, 1.00);  // the gas's own glow (scales scattering)
-uniform vec3 uNebAbsorbColour : source_color = vec3(1.00, 1.00, 1.00);  // what the gas absorbs (extinction tint)
-uniform vec3 uNebSunColour : source_color = vec3(1.00, 1.00, 1.00);  // the sun's colour
+uniform vec3 uNebRayleigh : source_color = vec3(0.175, 0.440, 1.000);  // Rayleigh scattering colour (the gas's glow)
+uniform vec3 uNebAbsorbColour : source_color = vec3(0.232, 0.606, 1.000);  // extinction colour (what the gas absorbs)
+uniform vec3 uNebSunColour : source_color = vec3(1.000, 1.000, 1.000);  // the sun's colour
 uniform float uNebBright : hint_range(0, 8, 0.01) = 1.00;  // exposure
 uniform float uNebSunAngle : hint_range(0, 6.28, 0.01) = 2.00;  // where the sun sits around us
 uniform float uNebSunHeight : hint_range(-1, 1, 0.01) = 0.50;  // sun elevation
@@ -42,14 +42,20 @@ uniform float uPxPerDir : hint_range(0.00005, 0.02, 0.00005) = 0.0013;
 #define GYROID_CLOUDS_GLSLINC
 
 // ===== PHYSICS ==================================================================
-// The gas, the sun and the box. Constants, not sliders.
-const vec3  BETA_RAYLEIGH = 100.0 * vec3(0.05802, 0.14558, 0.331);  // Earth-ish air, tweaked
-const vec3  BETA_OZONE    = vec3(0.650, 1.881, 0.085);
-// Scattering and extinction are now functions of the colour knobs, so the palette is
-// art rather than physics. The knobs scale the coefficients, so (1,1,1) reproduces the
-// original look exactly; suppress a channel to shift the whole nebula's colour.
-vec3 sigmaS() { return 2.0 * BETA_RAYLEIGH * uNebGlowColour; }
-vec3 sigmaE() { return 4.0 * (BETA_RAYLEIGH + 3.0 * BETA_OZONE) * uNebAbsorbColour; }
+// The gas, the sun and the ray. Constants, not sliders.
+//
+// The COLOUR of scattering and extinction are knobs (uNebRayleigh / uNebAbsorbColour); the
+// MAGNITUDE stays here, because that is what sets how optically thick the gas is. The gains
+// come from the original Earth-ish atmosphere coefficients, so the defaults reproduce the
+// physics exactly:
+//   BETA_RAYLEIGH = 100 * (0.05802, 0.14558, 0.331)  ->  scatter max 2*33.1  = 66.2
+//   extinction    = 4 * (BETA_RAYLEIGH + 3*BETA_OZONE) -> max 133.42
+// The knobs are normalised to the max channel (defaults below), so a colour picker can set
+// ANY hue -- unlike a multiplier on the physical blue, which could only suppress channels.
+const float SCATTER_GAIN = 66.20;
+const float EXTINCT_GAIN = 133.42;
+vec3 sigmaS() { return SCATTER_GAIN * uNebRayleigh; }
+vec3 sigmaE() { return EXTINCT_GAIN * uNebAbsorbColour; }
 const float LIGHT_DIST    = 18.0;   // how far the sun ray is marched (no box any more)
 const float SUN_POWER     = 200.0;
 

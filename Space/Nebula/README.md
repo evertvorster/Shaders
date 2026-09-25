@@ -66,16 +66,28 @@ col += starfieldSky(dir, ppd, T);
 | `uNebSteps` | 24 | march steps: quality vs speed. **The main cost lever** |
 | `uNebDither` | 1.0 | per-pixel jitter of the first step; 0 = off |
 | `uNebBright` | 1.0 | exposure |
-| `uNebGlowColour` | (1,1,1) | **the palette.** Multiplies the scattering — the gas's own glow |
-| `uNebAbsorbColour` | (1,1,1) | multiplies the extinction — what the gas absorbs |
+| `uNebRayleigh` | (0.175, 0.44, 1.0) | **the palette.** The Rayleigh scattering colour — the gas's own glow, any hue |
+| `uNebAbsorbColour` | (0.232, 0.606, 1.0) | the extinction colour — what the gas absorbs (higher = absorbed harder) |
 | `uNebSunColour` | (1,1,1) | the sun's colour |
 | `uNebSunAngle` / `uNebSunHeight` | 2.0 / 0.5 | where the sun sits |
 
 The three colour knobs are `vec3`, so each host gets a real colour control: Godot shows a
 colour picker (`: source_color`), SHADERed a float3, and `Tools/preview.sh` takes
-`uNebGlowColour=1.0,0.3,0.12`. They **scale** the physical coefficients, so `(1,1,1)` is
-exactly the original atmosphere-derived look, and suppressing a channel shifts the whole
-nebula's colour. To recolour a nebula you now set art, not physics.
+`uNebRayleigh=0.20,1.00,0.40`. They ARE the colour (normalised to the max channel) while the
+**magnitude** stays in physics (`SCATTER_GAIN` / `EXTINCT_GAIN`, derived from the original
+atmosphere coefficients) — so the defaults reproduce the physical look exactly and any hue is
+reachable.
+
+They used to be *multipliers* on the physical blue, which was a real limitation: scaling can
+only suppress channels, and blue was always the maximum, so **a green nebula was impossible**.
+Remember when recolouring that emission AND extinction both matter — the default extinction
+eats blue hard, which is why a blue-only Rayleigh renders very dim.
+
+```sh
+# green / magenta, straight to a still
+Tools/preview.sh Space/Nebula/gyroid-clouds.frag /tmp/g.png \
+  uNebRayleigh=0.20,1.00,0.40 uNebAbsorbColour=1.00,0.25,1.00
+```
 
 There is deliberately **no in-volume star field**. The gas is lit by the sun only; stars
 are the compositor's business (`Space/Starfield`), and a 27-cell star scan per march step
