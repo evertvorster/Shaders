@@ -115,19 +115,30 @@ was the single most expensive thing in this shader.
 
 ### `ridged-clouds` knobs
 
+Evert's look (baked as the defaults), which is also a nice demonstration of how the pieces
+trade off against each other:
+
 | variable | default | effect |
 |---|---|---|
-| `uFilVoid` | 0.60 | void threshold — higher = sparser, thinner strands |
-| `uFilScale` | 0.35 | field scale; higher = finer strands |
-| `uFilFreq` | 1.70 | frequency growth per octave (1.1–2.6) |
-| `uFilCore` | 0.60 | extra brightness in the ridge cores |
-| `uFilDensity` | 0.25 | optical depth |
-| `uFilView` | 22 | how deep the ray marches |
-| `uFilSteps` | 96 | march steps: quality vs speed |
-| `uFilBright` | 0.08 | exposure |
-| `uFilHue` / `uFilSat` | 0.55 / 0.45 | palette: base hue and saturation |
-| `uFilWarp` | 0.60 | **domain warp**: bends the strands. 0 = the raw straight sine sheets |
-| `uFilWarpScale` | 0.12 | warp frequency — higher = busier bending |
+| `uFilVoid` | 0.05 | void threshold — higher = sparser, thinner strands |
+| `uFilScale` | 0.05 | field scale; higher = finer strands |
+| `uFilFreq` | 1.15 | frequency growth per octave (1.1–2.6) |
+| `uFilCore` | 0.00 | extra brightness in the ridge cores |
+| `uFilDensity` | 3.60 | optical depth |
+| `uFilView` | 25 | how deep the ray marches |
+| `uFilSteps` | **16** | march steps: quality vs speed |
+| `uFilBright` | 0.077 | exposure |
+| `uFilHue` / `uFilSat` | 0.31 / 0.37 | palette: base hue and saturation |
+| `uFilWarp` | 0.78 | **domain warp**: bends the strands. 0 = raw straight sheets |
+| `uFilWarpScale` | 0.60 | warp frequency — higher = busier bending |
+
+**Why this set works, and why it is cheap.** `uFilScale 0.05` with `uFilFreq 1.15` makes the
+octaves almost identical — the ridge field itself is nearly featureless at that size. So the
+visible structure is coming almost entirely from the **warp** (`uFilWarpScale 0.60` is fine,
+high-frequency bending of very large sheets). Meanwhile `uFilDensity 3.60` makes the gas
+optically thick within a few steps, so the ray reaches its early-out almost immediately and
+the march never runs long — which is how 16 steps can look like this. Big smooth field, fine
+bending, thick gas: detail without steps.
 
 ## Running it
 

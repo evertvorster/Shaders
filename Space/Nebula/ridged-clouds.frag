@@ -21,18 +21,18 @@ uniform vec2  u_mouse;
 // Constants, the density field and the contract live in ridged-clouds.inc.glsl (below).
 
 // ===== VARIABLES ================================================================
-const float uFilScale   = 0.35;  // [0.05, 1.5] field scale: higher = finer strands
-const float uFilFreq    = 1.70;  // [1.1, 2.6]  frequency growth per octave
-const float uFilVoid    = 0.60;  // [0.05, 0.85] void threshold: higher = sparser strands
-const float uFilCore    = 0.60;  // [0, 2]      extra brightness in the cores
-const float uFilDensity = 0.25;  // [0.05, 6]   optical depth
-const float uFilView    = 22.0;  // [4, 80]     how deep the ray marches
-const float uFilSteps   = 96.0;  // [16, 192]   march steps: quality vs speed
-const float uFilBright  = 0.08;  // [0, 4]      exposure
-const float uFilHue     = 0.55;  // [0, 1]      base hue
-const float uFilSat     = 0.45;  // [0, 1]      saturation
-const float uFilWarp    = 0.60;  // [0, 2]      domain warp: bends the strands (0 = straight)
-const float uFilWarpScale = 0.12; // [0.02, 0.6] warp frequency: higher = busier bending
+const float uFilScale   = 0.05;  // [0.05, 1.5] field scale: higher = finer strands
+const float uFilFreq    = 1.15;  // [1.1, 2.6]  frequency growth per octave
+const float uFilVoid    = 0.05;  // [0.05, 0.85] void threshold: higher = sparser strands
+const float uFilCore    = 0.00;  // [0, 2]      extra brightness in the cores
+const float uFilDensity = 3.60;  // [0.05, 6]   optical depth
+const float uFilView    = 25.0;  // [4, 80]     how deep the ray marches
+const float uFilSteps   = 16.0;  // [16, 192]   march steps: quality vs speed
+const float uFilBright  = 0.077;  // [0, 4]      exposure
+const float uFilHue     = 0.31;  // [0, 1]      base hue
+const float uFilSat     = 0.37;  // [0, 1]      saturation
+const float uFilWarp    = 0.78;  // [0, 2]      domain warp: bends the strands (0 = straight)
+const float uFilWarpScale = 0.60; // [0.02, 0.6] warp frequency: higher = busier bending
 
 // ===== SHARED MATHS =============================================================
 #include "Space/Nebula/ridged-clouds.inc.glsl"

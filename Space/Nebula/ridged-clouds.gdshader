@@ -10,18 +10,18 @@
 shader_type spatial;
 render_mode cull_front, unshaded, depth_draw_never, depth_test_disabled;
 
-uniform float uFilScale : hint_range(0.05, 1.5, 0.01) = 0.35;  // field scale: higher = finer strands
-uniform float uFilFreq : hint_range(1.1, 2.6, 0.01) = 1.70;  // frequency growth per octave
-uniform float uFilVoid : hint_range(0.05, 0.85, 0.001) = 0.60;  // void threshold: higher = sparser strands
-uniform float uFilCore : hint_range(0, 2, 0.01) = 0.60;  // extra brightness in the cores
-uniform float uFilDensity : hint_range(0.05, 6, 0.01) = 0.25;  // optical depth
-uniform float uFilView : hint_range(4, 80, 0.1) = 22.0;  // how deep the ray marches
-uniform float uFilSteps : hint_range(16, 192, 1) = 96.0;  // march steps: quality vs speed
-uniform float uFilBright : hint_range(0, 4, 0.01) = 0.08;  // exposure
-uniform float uFilHue : hint_range(0, 1, 0.01) = 0.55;  // base hue
-uniform float uFilSat : hint_range(0, 1, 0.01) = 0.45;  // saturation
-uniform float uFilWarp : hint_range(0, 2, 0.01) = 0.60;  // domain warp: bends the strands (0 = straight)
-uniform float uFilWarpScale : hint_range(0.02, 0.6, 0.001) = 0.12;  // warp frequency: higher = busier bending
+uniform float uFilScale : hint_range(0.05, 1.5, 0.01) = 0.05;  // field scale: higher = finer strands
+uniform float uFilFreq : hint_range(1.1, 2.6, 0.01) = 1.15;  // frequency growth per octave
+uniform float uFilVoid : hint_range(0.05, 0.85, 0.001) = 0.05;  // void threshold: higher = sparser strands
+uniform float uFilCore : hint_range(0, 2, 0.01) = 0.00;  // extra brightness in the cores
+uniform float uFilDensity : hint_range(0.05, 6, 0.01) = 3.60;  // optical depth
+uniform float uFilView : hint_range(4, 80, 0.1) = 25.0;  // how deep the ray marches
+uniform float uFilSteps : hint_range(16, 192, 1) = 16.0;  // march steps: quality vs speed
+uniform float uFilBright : hint_range(0, 4, 0.01) = 0.077;  // exposure
+uniform float uFilHue : hint_range(0, 1, 0.01) = 0.31;  // base hue
+uniform float uFilSat : hint_range(0, 1, 0.01) = 0.37;  // saturation
+uniform float uFilWarp : hint_range(0, 2, 0.01) = 0.78;  // domain warp: bends the strands (0 = straight)
+uniform float uFilWarpScale : hint_range(0.02, 0.6, 0.001) = 0.60;  // warp frequency: higher = busier bending
 
 uniform vec3  uCamPos = vec3(0.0, 0.0, 0.0);
 uniform float uPxPerDir : hint_range(0.00005, 0.02, 0.00005) = 0.0013;
