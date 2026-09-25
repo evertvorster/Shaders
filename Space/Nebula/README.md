@@ -137,32 +137,33 @@ was the single most expensive thing in this shader.
 
 ### `ridged-clouds` knobs
 
-Evert's look (baked as the defaults), which is also a nice demonstration of how the pieces
+Evert's tuned look, baked as the defaults. Worth reading as a worked example of how these
 trade off against each other:
 
 | variable | default | effect |
 |---|---|---|
-| `uFilVoid` | 0.05 | void threshold — higher = sparser, thinner strands |
-| `uFilScale` | 0.05 | field scale; higher = finer strands |
-| `uFilFreq` | 1.15 | frequency growth per octave (1.1–2.6) |
+| `uFilVoid` | **0.65** | void threshold — higher = sparser, thinner strands |
+| `uFilScale` | 0.22 | field scale; higher = finer strands |
+| `uFilFreq` | 1.43 | frequency growth per octave (1.1–2.6) |
 | `uFilCore` | 0.00 | extra brightness in the ridge cores |
 | `uFilDensity` | 3.60 | optical depth |
 | `uFilView` | 25 | how deep the ray marches |
 | `uFilSteps` | **16** | march steps: quality vs speed |
-| `uFilBright` | 0.077 | exposure |
-| `uFilHue` / `uFilSat` | 0.31 / 0.37 | palette: base hue and saturation |
+| `uFilBright` | 0.167 | exposure |
+| `uFilHue` / `uFilSat` | 0.695 / 0.39 | palette: base hue and saturation |
 | `uFilHueRange` | 0.18 | palette **width**: 0 = one hue, 1 = the whole wheel |
 | `uFilOpacity` | 1.00 | how much light the gas blocks (lower = translucent) |
 | `uFilWarp` | 0.78 | **domain warp**: bends the strands. 0 = raw straight sheets |
 | `uFilWarpScale` | 0.60 | warp frequency — higher = busier bending |
 
-**Why this set works, and why it is cheap.** `uFilScale 0.05` with `uFilFreq 1.15` makes the
-octaves almost identical — the ridge field itself is nearly featureless at that size. So the
-visible structure is coming almost entirely from the **warp** (`uFilWarpScale 0.60` is fine,
-high-frequency bending of very large sheets). Meanwhile `uFilDensity 3.60` makes the gas
-optically thick within a few steps, so the ray reaches its early-out almost immediately and
-the march never runs long — which is how 16 steps can look like this. Big smooth field, fine
-bending, thick gas: detail without steps.
+**Why this set works, and why it is cheap.** `uFilVoid 0.65` throws away most of the field and
+keeps only the strongest ridges, so sparse filaments stand against real voids (Godot measures
+sd 53.6 here, the highest contrast any setting has produced). `uFilDensity 3.60` then makes
+those filaments optically thick within about two samples — `dt = uFilView/uFilSteps = 1.56`, so
+per-step optical depth exceeds 1 — and the march hits its early-out almost immediately. That is
+how 16 steps can carry this much structure: the gas saturates, so the ray never runs long.
+`uFilScale 0.22` with `uFilFreq 1.43` keeps the octave frequencies rising modestly, and the
+warp supplies the kinking that stops the strands reading as straight bands.
 
 ## Running it
 

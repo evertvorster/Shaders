@@ -21,16 +21,16 @@ uniform vec2  u_mouse;
 // Constants, the density field and the contract live in ridged-clouds.inc.glsl (below).
 
 // ===== VARIABLES ================================================================
-const float uFilScale   = 0.05;  // [0.05, 1.5] field scale: higher = finer strands
-const float uFilFreq    = 1.15;  // [1.1, 2.6]  frequency growth per octave
-const float uFilVoid    = 0.05;  // [0.05, 0.85] void threshold: higher = sparser strands
+const float uFilScale   = 0.22;  // [0.05, 1.5] field scale: higher = finer strands
+const float uFilFreq    = 1.43;  // [1.1, 2.6]  frequency growth per octave
+const float uFilVoid    = 0.65;  // [0.05, 0.85] void threshold: higher = sparser strands
 const float uFilCore    = 0.00;  // [0, 2]      extra brightness in the cores
 const float uFilDensity = 3.60;  // [0.05, 6]   optical depth
 const float uFilView    = 25.0;  // [4, 80]     how deep the ray marches
 const float uFilSteps   = 16.0;  // [16, 192]   march steps: quality vs speed
-const float uFilBright  = 0.077;  // [0, 4]      exposure
-const float uFilHue     = 0.31;  // [0, 1]      base hue
-const float uFilSat     = 0.37;  // [0, 1]      saturation
+const float uFilBright  = 0.167;  // [0, 4]      exposure
+const float uFilHue     = 0.695;  // [0, 1]      base hue
+const float uFilSat     = 0.39;  // [0, 1]      saturation
 const float uFilHueRange = 0.18; // [0, 1]      palette WIDTH: 0 = one hue, 1 = the whole wheel
 const float uFilOpacity = 1.00;  // [0, 1]      how much light the gas blocks (lower = translucent)
 const float uFilWarp    = 0.78;  // [0, 2]      domain warp: bends the strands (0 = straight)

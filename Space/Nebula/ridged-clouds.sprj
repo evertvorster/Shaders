@@ -30,13 +30,13 @@
 				<variable type="float4x4" name="uProj" system="Projection" />
 				<variable type="float3" name="uCamPos" system="CameraPosition3" />
 				<variable type="float" name="uFilScale">
-					<row><value>0.05</value></row>
+					<row><value>0.22</value></row>
 				</variable>
 				<variable type="float" name="uFilFreq">
-					<row><value>1.15</value></row>
+					<row><value>1.43</value></row>
 				</variable>
 				<variable type="float" name="uFilVoid">
-					<row><value>0.05</value></row>
+					<row><value>0.65</value></row>
 				</variable>
 				<variable type="float" name="uFilCore">
 					<row><value>0.00</value></row>
@@ -51,13 +51,13 @@
 					<row><value>16.0</value></row>
 				</variable>
 				<variable type="float" name="uFilBright">
-					<row><value>0.077</value></row>
+					<row><value>0.167</value></row>
 				</variable>
 				<variable type="float" name="uFilHue">
-					<row><value>0.31</value></row>
+					<row><value>0.695</value></row>
 				</variable>
 				<variable type="float" name="uFilSat">
-					<row><value>0.37</value></row>
+					<row><value>0.39</value></row>
 				</variable>
 				<variable type="float" name="uFilHueRange">
 					<row><value>0.18</value></row>

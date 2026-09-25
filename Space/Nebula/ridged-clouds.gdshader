@@ -10,16 +10,16 @@
 shader_type spatial;
 render_mode cull_front, unshaded, depth_draw_never, depth_test_disabled;
 
-uniform float uFilScale : hint_range(0.05, 1.5, 0.01) = 0.05;  // field scale: higher = finer strands
-uniform float uFilFreq : hint_range(1.1, 2.6, 0.01) = 1.15;  // frequency growth per octave
-uniform float uFilVoid : hint_range(0.05, 0.85, 0.001) = 0.05;  // void threshold: higher = sparser strands
+uniform float uFilScale : hint_range(0.05, 1.5, 0.01) = 0.22;  // field scale: higher = finer strands
+uniform float uFilFreq : hint_range(1.1, 2.6, 0.01) = 1.43;  // frequency growth per octave
+uniform float uFilVoid : hint_range(0.05, 0.85, 0.001) = 0.65;  // void threshold: higher = sparser strands
 uniform float uFilCore : hint_range(0, 2, 0.01) = 0.00;  // extra brightness in the cores
 uniform float uFilDensity : hint_range(0.05, 6, 0.01) = 3.60;  // optical depth
 uniform float uFilView : hint_range(4, 80, 0.1) = 25.0;  // how deep the ray marches
 uniform float uFilSteps : hint_range(16, 192, 1) = 16.0;  // march steps: quality vs speed
-uniform float uFilBright : hint_range(0, 4, 0.01) = 0.077;  // exposure
-uniform float uFilHue : hint_range(0, 1, 0.01) = 0.31;  // base hue
-uniform float uFilSat : hint_range(0, 1, 0.01) = 0.37;  // saturation
+uniform float uFilBright : hint_range(0, 4, 0.01) = 0.167;  // exposure
+uniform float uFilHue : hint_range(0, 1, 0.01) = 0.695;  // base hue
+uniform float uFilSat : hint_range(0, 1, 0.01) = 0.39;  // saturation
 uniform float uFilHueRange : hint_range(0, 1, 0.01) = 0.18;  // palette WIDTH: 0 = one hue, 1 = the whole wheel
 uniform float uFilOpacity : hint_range(0, 1, 0.01) = 1.00;  // how much light the gas blocks (lower = translucent)
 uniform float uFilWarp : hint_range(0, 2, 0.01) = 0.78;  // domain warp: bends the strands (0 = straight)
