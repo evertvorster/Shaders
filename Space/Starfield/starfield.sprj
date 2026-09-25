@@ -30,10 +30,10 @@
 					<row><value>0.54</value></row>
 				</variable>
 				<variable type="float" name="uStarFieldSize">
-					<row><value>1.13</value></row>
+					<row><value>0.46</value></row>
 				</variable>
 				<variable type="float" name="uStarDensity">
-					<row><value>59.0</value></row>
+					<row><value>57.0</value></row>
 				</variable>
 				<variable type="float" name="uStarCluster">
 					<row><value>1.00</value></row>

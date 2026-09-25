@@ -22,21 +22,21 @@ uniform vec2  u_mouse;
 const float uMwPitch      = 0.00;  // [0, 3.14]   tilt of the galactic plane
 const float uMwYaw        = 0.00;  // [0, 6.28]   yaw of the plane
 const float uMwCoreAngle  = 0.03;  // [0, 6.28]   where the core sits along the band
-const float uMwDistance   = 0.90;  // [0.25, 4]   scale every element: further / nearer the centre
-const float uMwWidth      = 0.06;  // [0.02, 0.6] bright band width
+const float uMwDistance   = 0.72;  // [0.25, 4]   scale every element: further / nearer the centre
+const float uMwWidth      = 0.05;  // [0.02, 0.6] bright band width
 const float uMwFalloff    = 2.00;  // [0.5, 8]    cross-band falloff: 2 = gaussian, higher = flatter then sharper
 const float uMwSpan       = 114.0; // [15, 180]   half-width of the arc, in degrees
 const float uMwTaper      = 0.45;  // [0, 1]      how much thinner the bands get at the sides
 const float uMwNoiseScale = 17.0;  // [0.5, 60]   size of the bright-band turbulence
 const float uMwDustNoiseScale = 6.9; // [0.5, 60] size of the DUST turbulence (its own)
 const float uMwBright     = 0.45;  // [0, 4]      bright band brightness
-const float uMwDust       = 4.00;  // [0, 12]     dark band extinction
+const float uMwDust       = 5.75;  // [0, 12]     dark band extinction
 const float uMwDustWidth  = 0.12;  // [0.01, 0.4] dark band outer width
 const float uMwDustFull   = 0.00;  // [0, 0.4]     width at full strength, then falls off to the outer width
 const float uMwDustOffset = 0.01;  // [-0.15, 0.15] dark band offset from the midplane
 const float uMwDustTint   = 0.00;  // [0, 2]      how brown the dark band is (0 = black)
-const float uMwCore       = 0.61;  // [0, 4]      core brightness
-const float uMwCoreSize   = 0.12;  // [0.05, 0.8] core angular size
+const float uMwCore       = 1.22;  // [0, 4]      core brightness
+const float uMwCoreSize   = 0.08;  // [0.05, 0.8] core angular size
 
 // ===== SHARED MATHS =============================================================
 #include "Space/MilkyWay/milkyway.inc.glsl"

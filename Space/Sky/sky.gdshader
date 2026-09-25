@@ -10,8 +10,8 @@ uniform float uFadeNebula : hint_range(0, 1, 0.01) = 0.00;  // weight of the loc
 uniform float uFadeStars : hint_range(0, 1, 0.01) = 1.00;  // weight of the local starfield layer
 uniform float uFadeMilkyway : hint_range(0, 1, 0.01) = 1.00;  // weight of the Milky Way layer
 uniform float uStarSize : hint_range(0.1, 5, 0.01) = 0.54;  // scales EVERY star
-uniform float uStarFieldSize : hint_range(0.05, 3, 0.01) = 1.13;  // scales the smallest (faintest) stars
-uniform float uStarDensity : hint_range(5, 400, 1) = 59.0;  // field density: star count scales with its SQUARE
+uniform float uStarFieldSize : hint_range(0.05, 3, 0.01) = 0.46;  // scales the smallest (faintest) stars
+uniform float uStarDensity : hint_range(5, 400, 1) = 57.0;  // field density: star count scales with its SQUARE
 uniform float uStarCluster : hint_range(0, 1, 0.01) = 1.00;  // clumping; 0 = perfectly uniform field
 uniform float uStarClusterScale : hint_range(0.5, 20, 0.1) = 0.50;  // clump size: lower = bigger clumps
 uniform float uStarBright : hint_range(0, 4, 0.01) = 1.31;  // exposure
@@ -29,21 +29,21 @@ uniform float uNebSteps : hint_range(6, 64, 0.1) = 16.0;  // march steps: qualit
 uniform float uMwPitch : hint_range(0, 3.14, 0.01) = 0.00;  // tilt of the galactic plane
 uniform float uMwYaw : hint_range(0, 6.28, 0.01) = 0.00;  // yaw of the plane
 uniform float uMwCoreAngle : hint_range(0, 6.28, 0.01) = 0.03;  // where the core sits along the band
-uniform float uMwDistance : hint_range(0.25, 4, 0.01) = 0.90;  // scale every element: further / nearer the centre
-uniform float uMwWidth : hint_range(0.02, 0.6, 0.001) = 0.06;  // bright band width
+uniform float uMwDistance : hint_range(0.25, 4, 0.01) = 0.72;  // scale every element: further / nearer the centre
+uniform float uMwWidth : hint_range(0.02, 0.6, 0.001) = 0.05;  // bright band width
 uniform float uMwFalloff : hint_range(0.5, 8, 0.01) = 2.00;  // cross-band falloff: 2 = gaussian, higher = flatter then sharper
 uniform float uMwSpan : hint_range(15, 180, 1) = 114.0;  // half-width of the arc, in degrees
 uniform float uMwTaper : hint_range(0, 1, 0.01) = 0.45;  // how much thinner the bands get at the sides
 uniform float uMwNoiseScale : hint_range(0.5, 60, 0.1) = 17.0;  // size of the bright-band turbulence
 uniform float uMwDustNoiseScale : hint_range(0.5, 60, 0.1) = 6.9;  // size of the DUST turbulence (its own)
 uniform float uMwBright : hint_range(0, 4, 0.01) = 0.45;  // bright band brightness
-uniform float uMwDust : hint_range(0, 12, 0.1) = 4.00;  // dark band extinction
+uniform float uMwDust : hint_range(0, 12, 0.1) = 5.75;  // dark band extinction
 uniform float uMwDustWidth : hint_range(0.01, 0.4, 0.001) = 0.12;  // dark band outer width
 uniform float uMwDustFull : hint_range(0, 0.4, 0.001) = 0.00;  // width at full strength, then falls off to the outer width
 uniform float uMwDustOffset : hint_range(-0.15, 0.15, 0.001) = 0.01;  // dark band offset from the midplane
 uniform float uMwDustTint : hint_range(0, 2, 0.01) = 0.00;  // how brown the dark band is (0 = black)
-uniform float uMwCore : hint_range(0, 4, 0.01) = 0.61;  // core brightness
-uniform float uMwCoreSize : hint_range(0.05, 0.8, 0.001) = 0.12;  // core angular size
+uniform float uMwCore : hint_range(0, 4, 0.01) = 1.22;  // core brightness
+uniform float uMwCoreSize : hint_range(0.05, 0.8, 0.001) = 0.08;  // core angular size
 
 uniform vec3  uCamPos = vec3(0.0, 0.0, 0.0);
 uniform float uPxPerDir : hint_range(0.00005, 0.02, 0.00005) = 0.0013;

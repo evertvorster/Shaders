@@ -11,8 +11,8 @@ shader_type spatial;
 render_mode cull_front, unshaded, depth_draw_never, depth_test_disabled;
 
 uniform float uStarSize : hint_range(0.1, 5, 0.01) = 0.54;  // scales EVERY star
-uniform float uStarFieldSize : hint_range(0.05, 3, 0.01) = 1.13;  // scales the smallest (faintest) stars
-uniform float uStarDensity : hint_range(5, 400, 1) = 59.0;  // field density: star count scales with its SQUARE
+uniform float uStarFieldSize : hint_range(0.05, 3, 0.01) = 0.46;  // scales the smallest (faintest) stars
+uniform float uStarDensity : hint_range(5, 400, 1) = 57.0;  // field density: star count scales with its SQUARE
 uniform float uStarCluster : hint_range(0, 1, 0.01) = 1.00;  // clumping; 0 = perfectly uniform field
 uniform float uStarClusterScale : hint_range(0.5, 20, 0.1) = 0.50;  // clump size: lower = bigger clumps
 uniform float uStarBright : hint_range(0, 4, 0.01) = 1.31;  // exposure
