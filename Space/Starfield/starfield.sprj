@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <project version="2">
 	<pipeline>
-		<pass name="Starfield" type="shader" active="true" patchverts="1">
+		<pass name="starfield" type="shader" active="true" patchverts="1">
 			<shader type="vs" path="starfield.vert" entry="main" />
 			<shader type="ps" path="starfield.glsl" entry="main" />
 			<inputlayout>
@@ -26,6 +26,9 @@
 				<variable type="float2" name="iResolution" system="ViewportSize" />
 				<variable type="float2" name="iMouse" system="MousePosition" />
 				<variable type="float" name="iTime" system="Time" />
+				<variable type="float4x4" name="uView" system="View" />
+				<variable type="float4x4" name="uProj" system="Projection" />
+				<variable type="float3" name="uCamPos" system="CameraPosition3" />
 				<variable type="float" name="uStarSize">
 					<row><value>0.54</value></row>
 				</variable>
@@ -57,13 +60,13 @@
 	<objects />
 	<cameras />
 	<settings>
-		<entry type="property" name="Starfield" item="pipe" />
-		<entry type="file" name="Starfield" shader="vs" />
-		<entry type="file" name="Starfield" shader="ps" />
+		<entry type="property" name="starfield" item="pipe" />
+		<entry type="file" name="starfield" shader="vs" />
+		<entry type="file" name="starfield" shader="ps" />
 		<entry type="camera" fp="false">
-			<distance>19</distance>
-			<pitch>89</pitch>
-			<yaw>3</yaw>
+			<distance>3</distance>
+			<pitch>20</pitch>
+			<yaw>45</yaw>
 			<roll>360</roll>
 		</entry>
 		<entry type="clearcolor" r="0" g="0" b="0" a="1" />
