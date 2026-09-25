@@ -1,4 +1,4 @@
-# StarVolume — a starfield you can fly through
+# volumetric_starfield — a starfield you can fly through
 
 `Space/Starfield` is a **dome**: every star sits on the celestial sphere, so it never moves
 relative to you. That is right for distant stars, but it gives no sense of travel.
@@ -6,7 +6,7 @@ relative to you. That is right for distant stars, but it gives no sense of trave
 This layer is a **volume**: stars sit on a world-anchored lattice around the viewer, so flying
 past them produces real parallax.
 
-    vec3 starVolumeSky(vec3 camPos, vec3 dir, float pxPerDir, float dither, out vec3 transmittance);
+    vec3 volumetricStarfieldSky(vec3 camPos, vec3 dir, float pxPerDir, float dither, out vec3 transmittance);
 
 Stars absorb nothing, so `transmittance` is always `1.0` — the same as the dome, and it means
 this layer is free to sit *behind* anything in the fold.
@@ -23,7 +23,7 @@ negligible.
 
 So the split is: **volume = local parallax, dome = the far field.** Compose them as
 
-    col = starVolumeSky(...) + Ts * domeSky(...)     // Ts == 1, so it is just a sum
+    col = volumetricStarfieldSky(...) + Ts * domeSky(...)     // Ts == 1, so it is just a sum
 
 ## How a star is found
 
@@ -59,7 +59,7 @@ everything else equal gives **1**.
 The fold that puts this behind a nebula, with the dust occluding the stars:
 
     vec3 Tn; vec3 neb   = nebulaSky(camPos, dir, pxPerDir, dither, Tn);
-    vec3 Ts; vec3 stars = starVolumeSky(camPos, dir, pxPerDir, dither, Ts);
+    vec3 Ts; vec3 stars = volumetricStarfieldSky(camPos, dir, pxPerDir, dither, Ts);
     vec3 col = neb + Tn * stars;          // Tn is the nebula's transmittance
 
 **Verified:** with a thin nebula the star contribution covers 7504 pixels; with dense gas it is
@@ -68,10 +68,10 @@ The fold that puts this behind a nebula, with the dust occluding the stars:
 ## Toolchain
 
 ```sh
-python3 Tools/build_starvolume.py            # generate + verify
-python3 Tools/build_starvolume.py --check    # verify only
-Tools/preview.sh Space/StarVolume/star-volume.frag /tmp/stars.png
+python3 Tools/build_volumetric_starfield.py            # generate + verify
+python3 Tools/build_volumetric_starfield.py --check    # verify only
+Tools/preview.sh Space/volumetric_starfield/volumetric_starfield.frag /tmp/stars.png
 ```
 
-`build_starvolume.py` reuses `build_nebula.py`'s plumbing (marker parsing, include inlining,
+`build_volumetric_starfield.py` reuses `build_nebula.py`'s plumbing (marker parsing, include inlining,
 the SHADERed project, verification); the only real difference is the contract function.

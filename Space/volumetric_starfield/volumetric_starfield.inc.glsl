@@ -1,4 +1,4 @@
-// star-volume.inc.glsl — a starfield you can FLY THROUGH.
+// volumetric_starfield.inc.glsl — a starfield you can FLY THROUGH.
 //
 // `Space/Starfield` is a DOME: every star sits on the celestial sphere at radius=cells, so it
 // never moves relative to the viewer. That is correct for distant stars (their parallax is
@@ -16,13 +16,13 @@
 // anyway -- where parallax is genuinely negligible.
 //
 // Contract (same shape as the nebula layers):
-//     vec3 starVolumeSky(vec3 camPos, vec3 dir, float pxPerDir, float dither, out vec3 transmittance);
+//     vec3 volumetricStarfieldSky(vec3 camPos, vec3 dir, float pxPerDir, float dither, out vec3 transmittance);
 // Stars absorb nothing, so transmittance is always 1 -- exactly like the dome.
 //
 // GPL-3.0 (see LICENSE at the repository root).
 
-#ifndef STAR_VOLUME_GLSLINC
-#define STAR_VOLUME_GLSLINC
+#ifndef VOLUMETRIC_STARFIELD_GLSLINC
+#define VOLUMETRIC_STARFIELD_GLSLINC
 
 #include "lib/hash.glsl"
 #include "lib/noise.glsl"
@@ -36,7 +36,7 @@ vec3 starTint(float m) {
 	return mix(vec3(1.00, 0.82, 0.66), vec3(0.78, 0.86, 1.00), clamp(m, 0.0, 1.0));
 }
 
-vec3 starVolumeSky(vec3 camPos, vec3 dir, float pxPerDir, float dither, out vec3 transmittance) {
+vec3 volumetricStarfieldSky(vec3 camPos, vec3 dir, float pxPerDir, float dither, out vec3 transmittance) {
 	vec3 d = normalize(dir);
 	transmittance = vec3(1.0);            // stars do not absorb
 
@@ -93,4 +93,4 @@ vec3 starVolumeSky(vec3 camPos, vec3 dir, float pxPerDir, float dither, out vec3
 	return col;
 }
 
-#endif  // STAR_VOLUME_GLSLINC
+#endif  // VOLUMETRIC_STARFIELD_GLSLINC

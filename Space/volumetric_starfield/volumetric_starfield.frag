@@ -1,9 +1,9 @@
-// star-volume.frag — a starfield you can fly through (world-anchored star volume).
+// volumetric_starfield.frag — a starfield you can fly through (world-anchored star volume).
 //
-//     vec3 starVolumeSky(vec3 camPos, vec3 dir, float pxPerDir, float dither, out vec3 transmittance);
+//     vec3 volumetricStarfieldSky(vec3 camPos, vec3 dir, float pxPerDir, float dither, out vec3 transmittance);
 //
 // Local stars only: the march is bounded by uStvView, and the distant field is the dome's job
-// (Space/Starfield). See star-volume.inc.glsl for why the split is necessary.
+// (Space/Starfield). See volumetric_starfield.inc.glsl for why the split is necessary.
 //
 // GPL-3.0 (see LICENSE at the repository root).
 
@@ -15,7 +15,7 @@ uniform float u_time;
 uniform vec2  u_mouse;
 
 // ===== PHYSICS ==================================================================
-// The lattice, the star model and the contract live in star-volume.inc.glsl (below).
+// The lattice, the star model and the contract live in volumetric_starfield.inc.glsl (below).
 
 // ===== VARIABLES ================================================================
 const float uStvCell    = 2.0;      // [1, 50]    cell size in world units: bigger = fewer, further apart
@@ -27,7 +27,7 @@ const float uStvFalloff = 0.0020;   // [0.0001, 0.05] inverse-square scale: bigg
 const float uStvSeed    = 0.0;      // [0, 100]   lattice seed
 
 // ===== SHARED MATHS =============================================================
-#include "Space/StarVolume/star-volume.inc.glsl"
+#include "Space/volumetric_starfield/volumetric_starfield.inc.glsl"
 
 // ===== HOST (glslviewer) ========================================================
 // Everything from this marker down is host plumbing and is REPLACED by the builder.
@@ -52,7 +52,7 @@ void main() {
 
 	float dither = ign(gl_FragCoord.xy);
 	vec3 transmittance;
-	vec3 col = starVolumeSky(camPos, dir, pxPerDir, dither, transmittance);
+	vec3 col = volumetricStarfieldSky(camPos, dir, pxPerDir, dither, transmittance);
 
 	col = aces(col);
 	gl_FragColor = vec4(pow(col, vec3(0.4545)), 1.0);
