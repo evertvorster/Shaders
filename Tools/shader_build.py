@@ -311,6 +311,74 @@ void fragment() {{
 """
 
 
+def emit_bake(builder, source, physics, shared, variables, body):
+    """The Godot CUBEMAP BAKE host: a `canvas_item` shader that renders all six cube faces
+    side by side, ready for split -> DXT1 -> assemble into `<name>_light.cube`.
+
+    It is a canvas_item shader (not spatial) because the bake renders a screen quad per
+    face: each pixel maps through lib/cubemap.glsl to the direction that pixel stands for.
+    The mapping is shared with the Vega Strike baker and its orientation self-test, so a
+    baked cube faces the same way as every other cube this project produces.
+
+    Tonemapping IS applied here (aces + gamma), because a baked cubemap is sampled directly
+    as colour in the engine -- what lands in the file has to be the final look. NOTE that
+    the interactive Godot lab still applies its OWN tonemap on top of the shader's, so the
+    lab reads brighter than a bake; that inconsistency is the documented open item.
+
+    `body` must leave the result in `col`. A cubemap has no depth, so a world-space volume
+    bakes as a snapshot from uBakePos (no parallax) -- use uBakePos, not a hardcoded origin.
+    """
+    # godot_uniform(), NOT decl(): Godot defaults a bare `uniform float x;` to ZERO, and the
+    # bake host is rendered by bake.tscn with only uPxPerDir/uBakePos set. Using the GLSL
+    # declaration here silently zeroed every knob and baked a black sky.
+    uni = "\n".join(godot_uniform(v) for v in variables)
+    # The bake host is SELF-CONTAINED: it needs the face mapping, and ign() for the dither,
+    # and a layer source is not required to include either (the starfield includes neither).
+    # Both are inlined, guarded, so this costs nothing when they are already present.
+    libs = resolve_includes('#include "lib/cubemap.glsl"\n#include "lib/raymarch.glsl"\n')
+    return f"""// {generated_header(builder, source)[3:]}
+// Godot 4 CUBEMAP BAKE host (canvas_item): one strip of six faces, +X -X +Y -Y +Z -Z.
+// Rendered by the lab's bake.tscn / vs-backgrounds' scripts/bake-sky.sh, which splits it,
+// compresses each face to DXT1 and assembles the cubemap.
+shader_type canvas_item;
+
+{uni}
+
+// Host plumbing: the baker sets uPxPerDir = 2.0 / face_size (a face spans -1..1), and
+// uBakePos to the point the cube is a snapshot FROM.
+uniform float uPxPerDir = 0.0013;
+uniform vec3  uBakePos = vec3(0.0, 0.0, 0.0);
+
+{physics}
+
+{libs}
+
+{shared}
+
+vec3 aces(vec3 x) {{
+	return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0);
+}}
+
+void fragment() {{
+	// six faces side by side
+	float fx = UV.x * 6.0;
+	int   f  = int(floor(fx));
+	float u  = fract(fx);
+	float v  = UV.y;
+
+	vec3 dir = normalize(faceDir(f, u, v));
+	float pxPerDir = uPxPerDir;
+	float dither = ign(FRAGCOORD.xy);
+	vec3 transmittance;
+	vec3 col = vec3(0.0);
+{body}
+
+	col = aces(col);
+	COLOR = vec4(pow(col, vec3(0.4545)), 1.0);
+}}
+"""
+
+
 def sprj_var(v):
     if v["type"] == "vec3":
         rows = "".join("<value>%s</value>" % c for c in v["value"])
@@ -434,7 +502,7 @@ def glob_sources(outdir):
     return sources
 
 
-def build(outdir, base, source, builder, glsl_body, godot_body,
+def build(outdir, base, source, builder, glsl_body, godot_body, bake_body=None,
           check_only=False, dither=True, tonemap=True):
     physics, shared, variables = read_source(source)
     outputs = [
@@ -445,6 +513,10 @@ def build(outdir, base, source, builder, glsl_body, godot_body,
         ("%s.gdshader" % base, emit_godot(builder, source, physics, shared, variables,
                                           godot_body, dither, tonemap), None),
     ]
+    if bake_body is not None:
+        outputs.append(("%s.bake.gdshader" % base,
+                        emit_bake(builder, source, physics, shared, variables, bake_body),
+                        None))
     print("\nsource : %s" % base)
     if not check_only:
         for name, text, _ in outputs:
@@ -464,12 +536,12 @@ def build(outdir, base, source, builder, glsl_body, godot_body,
     return bad
 
 
-def main(outdir, sources, builder, glsl_body, godot_body, argv=None,
+def main(outdir, sources, builder, glsl_body, godot_body, bake_body=None, argv=None,
          dither=True, tonemap=True):
     argv = sys.argv if argv is None else argv
     check_only = "--check" in argv
     bad = 0
     for source in sources:
         bad += build(outdir, os.path.basename(source)[:-len(".frag")], source, builder,
-                     glsl_body, godot_body, check_only, dither, tonemap)
+                     glsl_body, godot_body, bake_body, check_only, dither, tonemap)
     sys.exit(1 if bad else 0)

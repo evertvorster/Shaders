@@ -21,4 +21,5 @@ OUTDIR = os.path.join(sb.ROOT, "Space", "Nebula")
 
 sb.main(OUTDIR, sb.glob_sources(OUTDIR), "build_nebula.py",
         glsl_body="\tcol = nebulaSky(uCamPos, dir, pxPerDir, dither, transmittance);",
+        bake_body="\tcol = nebulaSky(uBakePos, dir, pxPerDir, dither, transmittance);",
         godot_body="\tcol = nebulaSky(uCamPos, dir, uPxPerDir, dither, transmittance);")

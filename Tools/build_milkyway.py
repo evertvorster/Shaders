@@ -20,5 +20,6 @@ sb.main(OUTDIR,
         [os.path.join(OUTDIR, "milkyway.frag")],
         "build_milkyway.py",
         glsl_body="\tcol = milkywaySky(dir, pxPerDir, transmittance);",
+        bake_body="\tcol = milkywaySky(dir, pxPerDir, transmittance);",
         godot_body="\tcol = milkywaySky(dir, uPxPerDir, transmittance);",
         dither=False)

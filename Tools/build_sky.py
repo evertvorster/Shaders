@@ -17,4 +17,5 @@ sb.main(OUTDIR,
         [os.path.join(OUTDIR, "sky.frag")],
         "build_sky.py",
         glsl_body="\tcol = skyColour(uCamPos, dir, pxPerDir, dither, transmittance);",
+        bake_body="\tcol = skyColour(uBakePos, dir, pxPerDir, dither, transmittance);",
         godot_body="\tcol = skyColour(uCamPos, dir, uPxPerDir, dither, transmittance);")

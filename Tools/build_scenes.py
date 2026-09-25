@@ -18,10 +18,11 @@ OUTDIR = os.path.join(sb.ROOT, "Space", "Scenes")
 
 # The fold: stars first (they are behind), then the nebula in front dimming them by its
 # transmittance. No light interaction between the layers -- only occlusion.
-FOLD = """\tvec3 Tn; vec3 neb   = nebulaSky(uCamPos, dir, {ppd}, dither, Tn);
-\tvec3 Ts; vec3 stars = volumetricStarfieldSky(uCamPos, dir, {ppd}, dither, Ts);
+FOLD = """\tvec3 Tn; vec3 neb   = nebulaSky({cam}, dir, {ppd}, dither, Tn);
+\tvec3 Ts; vec3 stars = volumetricStarfieldSky({cam}, dir, {ppd}, dither, Ts);
 \tcol = neb + Tn * uStars * stars;"""
 
 sb.main(OUTDIR, sb.glob_sources(OUTDIR), "build_scenes.py",
-        glsl_body=FOLD.format(ppd="pxPerDir"),
-        godot_body=FOLD.format(ppd="uPxPerDir"))
+        bake_body=FOLD.format(cam="uBakePos", ppd="pxPerDir"),
+        glsl_body=FOLD.format(cam="uCamPos", ppd="pxPerDir"),
+        godot_body=FOLD.format(cam="uCamPos", ppd="uPxPerDir"))

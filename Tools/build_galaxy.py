@@ -19,5 +19,6 @@ sb.main(OUTDIR,
         [os.path.join(OUTDIR, "analytic-galaxy.frag")],
         "build_galaxy.py",
         glsl_body="\tcol = galaxySky(uCamPos, dir, pxPerDir, transmittance);",
+        bake_body="\tcol = galaxySky(uBakePos, dir, pxPerDir, transmittance);",
         godot_body="\tcol = galaxySky(uCamPos, dir, uPxPerDir, transmittance);",
         dither=False)

@@ -15,4 +15,5 @@ OUTDIR = os.path.join(sb.ROOT, "Space", "volumetric_starfield")
 
 sb.main(OUTDIR, sb.glob_sources(OUTDIR), "build_volumetric_starfield.py",
         glsl_body="\tcol = volumetricStarfieldSky(uCamPos, dir, pxPerDir, dither, transmittance);",
+        bake_body="\tcol = volumetricStarfieldSky(uBakePos, dir, pxPerDir, dither, transmittance);",
         godot_body="\tcol = volumetricStarfieldSky(uCamPos, dir, uPxPerDir, dither, transmittance);")

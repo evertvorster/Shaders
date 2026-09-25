@@ -25,5 +25,6 @@ sb.main(OUTDIR,
         [os.path.join(OUTDIR, "starfield.frag")],
         "build_starfield.py",
         glsl_body="\tcol = starfieldSky(dir, pxPerDir, transmittance);",
+        bake_body="\tcol = starfieldSky(dir, pxPerDir, transmittance);",
         godot_body="\tcol = starfieldSky(dir, uPxPerDir, transmittance);",
         dither=False, tonemap=False)
