@@ -31,6 +31,8 @@ const float uFilSteps   = 96.0;  // [16, 192]   march steps: quality vs speed
 const float uFilBright  = 0.08;  // [0, 4]      exposure
 const float uFilHue     = 0.55;  // [0, 1]      base hue
 const float uFilSat     = 0.45;  // [0, 1]      saturation
+const float uFilWarp    = 0.60;  // [0, 2]      domain warp: bends the strands (0 = straight)
+const float uFilWarpScale = 0.12; // [0.02, 0.6] warp frequency: higher = busier bending
 
 // ===== SHARED MATHS =============================================================
 #include "Space/Nebula/ridged-clouds.inc.glsl"

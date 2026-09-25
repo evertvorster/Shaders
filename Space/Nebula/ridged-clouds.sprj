@@ -59,6 +59,12 @@
 				<variable type="float" name="uFilSat">
 					<row><value>0.45</value></row>
 				</variable>
+				<variable type="float" name="uFilWarp">
+					<row><value>0.60</value></row>
+				</variable>
+				<variable type="float" name="uFilWarpScale">
+					<row><value>0.12</value></row>
+				</variable>
 			</variables>
 			<macros />
 		</pass>

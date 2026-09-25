@@ -24,6 +24,12 @@ durand's *"Type 2 Supernova"* — including the slider UI from Bers' *"IcePrimit
 **All of those are CC BY-NC-SA 3.0**, which is incompatible with this repo's GPL-3.0:
 NonCommercial forbids what the GPL grants everyone, and ShareAlike conflicts with it.
 
+**On straightness:** the raw field is a stack of sine *sheets*, so without help the strands read
+as straight bands. `uFilWarp` domain-warps the sample point through a low-frequency 3D value
+noise before the ridges see it, which is the standard fix for a too-regular analytic pattern.
+Cost is 3 `vnoise` lookups per sample against the field's 12 trig, and the call is branched out
+when the knob is 0, so leaving it off is free.
+
 So `ridged-clouds` is an **independent implementation of the technique**, not a port: our
 own rotation construction, our own marching, lighting and colour, our own contract. No
 code was taken. If you are tempted to "restore" upstream code here, don't — it would put a
@@ -120,6 +126,8 @@ was the single most expensive thing in this shader.
 | `uFilSteps` | 96 | march steps: quality vs speed |
 | `uFilBright` | 0.08 | exposure |
 | `uFilHue` / `uFilSat` | 0.55 / 0.45 | palette: base hue and saturation |
+| `uFilWarp` | 0.60 | **domain warp**: bends the strands. 0 = the raw straight sine sheets |
+| `uFilWarpScale` | 0.12 | warp frequency — higher = busier bending |
 
 ## Running it
 

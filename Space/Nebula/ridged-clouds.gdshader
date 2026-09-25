@@ -20,6 +20,8 @@ uniform float uFilSteps : hint_range(16, 192, 1) = 96.0;  // march steps: qualit
 uniform float uFilBright : hint_range(0, 4, 0.01) = 0.08;  // exposure
 uniform float uFilHue : hint_range(0, 1, 0.01) = 0.55;  // base hue
 uniform float uFilSat : hint_range(0, 1, 0.01) = 0.45;  // saturation
+uniform float uFilWarp : hint_range(0, 2, 0.01) = 0.60;  // domain warp: bends the strands (0 = straight)
+uniform float uFilWarpScale : hint_range(0.02, 0.6, 0.001) = 0.12;  // warp frequency: higher = busier bending
 
 uniform vec3  uCamPos = vec3(0.0, 0.0, 0.0);
 uniform float uPxPerDir : hint_range(0.00005, 0.02, 0.00005) = 0.0013;
@@ -199,6 +201,25 @@ vec3 filamentColour(float f, float dist, float lightDist) {
 	return filHSV(vec3(hue, uFilSat, 1.0));
 }
 
+// Domain warp: bend the sample point with a low-frequency noise field so the strands kink
+// and curl instead of staying straight sine sheets. This is the standard trick for making
+// a regular analytic pattern look like it grew rather than was drawn -- without it the
+// wave families stay visibly straight. Three vnoise calls per sample; branched out when the
+// knob is 0, so it costs nothing to leave off.
+vec3 filWarp(vec3 p) {
+	float s = uFilWarpScale;
+	return (vec3(vnoise(p * s),
+	             vnoise(p * s + vec3(17.3, 5.1, 9.7)),
+	             vnoise(p * s + vec3(41.7, 23.3, 3.9))) - 0.5) * uFilWarp;
+}
+
+// The sample point the ridges see: scaled, and warped if the warp is enabled.
+vec3 filWarped(vec3 p) {
+	vec3 q = p * uFilScale;
+	if (uFilWarp > 0.0) q += filWarp(p);
+	return q;
+}
+
 vec3 nebulaSky(vec3 camPos, vec3 dir, float pxPerDir, float dither, out vec3 transmittance) {
 	vec3 d = normalize(dir);
 
@@ -213,7 +234,7 @@ vec3 nebulaSky(vec3 camPos, vec3 dir, float pxPerDir, float dither, out vec3 tra
 		if (i >= steps) break;
 		vec3 p = camPos + dist * d;
 
-		float f = filamentField(p * uFilScale);
+		float f = filamentField(filWarped(p));
 
 		// Voids are the default; strands are where the field is high.
 		float dens = smoothstep(uFilVoid, uFilVoid + 0.25, f);
