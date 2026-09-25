@@ -21,6 +21,8 @@ BUILDERS = [
     "build_nebula.py",
     "build_milkyway.py",
     "build_galaxy.py",
+    "build_volumetric_starfield.py",
+    "build_scenes.py",
     "build_sky.py",
 ]
 
