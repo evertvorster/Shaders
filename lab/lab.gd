@@ -94,6 +94,13 @@ func _ready() -> void:
 		for i in SHADERS.size():
 			if SHADERS[i]["dest"] == want.get_file():
 				_current = i
+		# Any OTHER .gdshader loads too: the list is a convenience, not a whitelist. Without
+		# this, naming an unknown shader silently bench/looked at whatever was current --
+		# which produced a "baseline" measurement that was really the starfield again.
+		if SHADERS[_current]["dest"] != want.get_file():
+			SHADERS.append({"label": want.get_file(), "dest": want.get_file(),
+			                "src": "", "speed": _move_speed})
+			_current = SHADERS.size() - 1
 	_select_shader(_current)
 
 	get_viewport().size_changed.connect(_update_px_per_dir)

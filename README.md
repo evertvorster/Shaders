@@ -130,7 +130,20 @@ godot-mono --path lab res://lab.tscn -- --shader res://ridged-clouds.gdshader
 - **`B`** is the bake setup screen; it drives `Tools/bake-sky.sh` (below).
 
 Headless, for verification without a display: `--capture <png>`, `--bench N`, and
-`--param name=value` (`name=r,g,b` for a colour).
+`--param name=value` (`name=r,g,b` for a colour). Any `.gdshader` can be named with
+`--shader`, not just the ones in the picker.
+
+**Measuring on a specific GPU** (e.g. the integrated one, to find out what weak hardware
+costs):
+
+```sh
+godot-mono --gpu-index 0 --path lab res://lab.tscn \
+    -- --shader res://nebula-and-stars.gdshader --bench 120
+```
+
+`lab/_baseline.gdshader` is a do-nothing sky shader: benchmark it the same way to get the
+*host's* per-frame cost, and subtract it to get a layer's own cost. Without that subtraction a
+cheap layer looks expensive (on a 2-CU iGPU the empty shader alone measured 6.2 ms).
 
 Render a still with glslviewer instead (no Godot needed):
 
