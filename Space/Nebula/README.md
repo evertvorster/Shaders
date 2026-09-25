@@ -9,11 +9,25 @@ folder of them is self-describing.
 | variant | what it is |
 |---|---|
 | **`gyroid-clouds`** | an **unbounded** world-space volume of gas you fly through. Gyroid-based fbm density, with the voids coming from the noise; sunlight scattered through it (Henyey-Greenstein phase + multi-octave scattering, Beer-Lambert) |
+| **`ridged-clouds`** | the same volume idea, different family: the density is a **network of thin ridges** rather than smooth billows — successive rotated sine waves, rectified so only the strands survive. That is what a supernova remnant or an HII region actually looks like. Colours are procedural (hue from the field and from a lattice of light sources), so it shifts palette as you fly |
 
 `gyroid-clouds` is ported from al-ro's *Volumetric nebula rendered in tiles*
 (Shadertoy `DtdSz7`, MIT, 2023), reduced to a single pass and adapted to the layer
 contract here. The original's multi-buffer camera state and progressive tile rendering
 are host work and are dropped.
+
+### Licence note on `ridged-clouds`
+
+The ridged/swirled-sine idea comes from the "spiral noise" used on Shadertoy
+(otaviogood), and the superstructure march that popularised it is Duke's / sebastien
+durand's *"Type 2 Supernova"* — including the slider UI from Bers' *"IcePrimitives"*.
+**All of those are CC BY-NC-SA 3.0**, which is incompatible with this repo's GPL-3.0:
+NonCommercial forbids what the GPL grants everyone, and ShareAlike conflicts with it.
+
+So `ridged-clouds` is an **independent implementation of the technique**, not a port: our
+own rotation construction, our own marching, lighting and colour, our own contract. No
+code was taken. If you are tempted to "restore" upstream code here, don't — it would put a
+licence landmine under a public GPL repo. The technique itself is fair game; the code is not.
 
 **There is no box.** An earlier version was a ±10 cube with a radial cavity and a cloud
 shell — it read as "clouds painted on a small box" and you hit the wall after ten units.
@@ -92,6 +106,20 @@ Tools/preview.sh Space/Nebula/gyroid-clouds.frag /tmp/g.png \
 There is deliberately **no in-volume star field**. The gas is lit by the sun only; stars
 are the compositor's business (`Space/Starfield`), and a 27-cell star scan per march step
 was the single most expensive thing in this shader.
+
+### `ridged-clouds` knobs
+
+| variable | default | effect |
+|---|---|---|
+| `uFilVoid` | 0.60 | void threshold — higher = sparser, thinner strands |
+| `uFilScale` | 0.35 | field scale; higher = finer strands |
+| `uFilFreq` | 1.70 | frequency growth per octave (1.1–2.6) |
+| `uFilCore` | 0.60 | extra brightness in the ridge cores |
+| `uFilDensity` | 0.25 | optical depth |
+| `uFilView` | 22 | how deep the ray marches |
+| `uFilSteps` | 96 | march steps: quality vs speed |
+| `uFilBright` | 0.08 | exposure |
+| `uFilHue` / `uFilSat` | 0.55 / 0.45 | palette: base hue and saturation |
 
 ## Running it
 

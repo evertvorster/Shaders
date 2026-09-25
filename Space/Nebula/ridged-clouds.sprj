@@ -1,0 +1,82 @@
+<?xml version="1.0"?>
+<project version="2">
+	<pipeline>
+		<pass name="ridged-clouds" type="shader" active="true" patchverts="1">
+			<shader type="vs" path="ridged-clouds.vert" entry="main" />
+			<shader type="ps" path="ridged-clouds.glsl" entry="main" />
+			<inputlayout>
+				<item value="Position" semantic="POSITION" />
+				<item value="Normal" semantic="NORMAL" />
+				<item value="Texcoord" semantic="TEXCOORD0" />
+			</inputlayout>
+			<rendertexture />
+			<items>
+				<item name="FS" type="geometry">
+					<type>ScreenQuad</type>
+					<width>1</width>
+					<height>1</height>
+					<depth>1</depth>
+					<topology>TriangleList</topology>
+				</item>
+			</items>
+			<itemvalues />
+			<variables>
+				<variable type="float4x4" name="matVP" system="Orthographic" />
+				<variable type="float4x4" name="matGeo" system="GeometryTransform" />
+				<variable type="float2" name="iResolution" system="ViewportSize" />
+				<variable type="float2" name="iMouse" system="MousePosition" />
+				<variable type="float" name="iTime" system="Time" />
+				<variable type="float4x4" name="uView" system="View" />
+				<variable type="float4x4" name="uProj" system="Projection" />
+				<variable type="float3" name="uCamPos" system="CameraPosition3" />
+				<variable type="float" name="uFilScale">
+					<row><value>0.35</value></row>
+				</variable>
+				<variable type="float" name="uFilFreq">
+					<row><value>1.70</value></row>
+				</variable>
+				<variable type="float" name="uFilVoid">
+					<row><value>0.60</value></row>
+				</variable>
+				<variable type="float" name="uFilCore">
+					<row><value>0.60</value></row>
+				</variable>
+				<variable type="float" name="uFilDensity">
+					<row><value>0.25</value></row>
+				</variable>
+				<variable type="float" name="uFilView">
+					<row><value>22.0</value></row>
+				</variable>
+				<variable type="float" name="uFilSteps">
+					<row><value>96.0</value></row>
+				</variable>
+				<variable type="float" name="uFilBright">
+					<row><value>0.08</value></row>
+				</variable>
+				<variable type="float" name="uFilHue">
+					<row><value>0.55</value></row>
+				</variable>
+				<variable type="float" name="uFilSat">
+					<row><value>0.45</value></row>
+				</variable>
+			</variables>
+			<macros />
+		</pass>
+	</pipeline>
+	<objects />
+	<cameras />
+	<settings>
+		<entry type="property" name="ridged-clouds" item="pipe" />
+		<entry type="file" name="ridged-clouds" shader="vs" />
+		<entry type="file" name="ridged-clouds" shader="ps" />
+		<entry type="camera" fp="false">
+			<distance>3</distance>
+			<pitch>20</pitch>
+			<yaw>45</yaw>
+			<roll>360</roll>
+		</entry>
+		<entry type="clearcolor" r="0" g="0" b="0" a="1" />
+		<entry type="usealpha" val="false" />
+	</settings>
+	<plugindata />
+</project>
