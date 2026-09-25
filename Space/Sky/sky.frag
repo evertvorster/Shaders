@@ -74,7 +74,7 @@ const float uNebSunAngle   = 2.00;  // [0, 6.28]  where the sun sits around us
 const float uNebSunHeight  = 0.50;  // [-1, 1]    sun elevation
 const float uNebLocalStars = 1.00;  // [0, 1]     stars embedded in the gas
 const float uNebNoiseScale = 1.00;  // [0.05, 4]  size of the cloud detail
-const float uNebVoid       = 0.55;  // [0.05, 0.9] how much of the volume is void
+const float uNebVoid       = 0.20;  // [0.02, 0.45] void threshold: higher = sparser clouds
 const float uNebView       = 45.0;  // [10, 400]  how far a view ray marches (visible depth)
 const float uNebSteps      = 24.0;  // [6, 64]    march steps: quality vs speed
 

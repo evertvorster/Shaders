@@ -87,7 +87,7 @@
 					<row><value>1.00</value></row>
 				</variable>
 				<variable type="float" name="uNebVoid">
-					<row><value>0.55</value></row>
+					<row><value>0.20</value></row>
 				</variable>
 				<variable type="float" name="uNebView">
 					<row><value>45.0</value></row>

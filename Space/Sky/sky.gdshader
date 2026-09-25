@@ -25,7 +25,7 @@ uniform float uNebSunAngle : hint_range(0, 6.28, 0.01) = 2.00;  // where the sun
 uniform float uNebSunHeight : hint_range(-1, 1, 0.01) = 0.50;  // sun elevation
 uniform float uNebLocalStars : hint_range(0, 1, 0.01) = 1.00;  // stars embedded in the gas
 uniform float uNebNoiseScale : hint_range(0.05, 4, 0.01) = 1.00;  // size of the cloud detail
-uniform float uNebVoid : hint_range(0.05, 0.9, 0.001) = 0.55;  // how much of the volume is void
+uniform float uNebVoid : hint_range(0.02, 0.45, 0.001) = 0.20;  // void threshold: higher = sparser clouds
 uniform float uNebView : hint_range(10, 400, 1) = 45.0;  // how far a view ray marches (visible depth)
 uniform float uNebSteps : hint_range(6, 64, 0.1) = 24.0;  // march steps: quality vs speed
 uniform float uMwPitch : hint_range(0, 3.14, 0.01) = 0.00;  // tilt of the galactic plane
