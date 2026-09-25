@@ -17,13 +17,22 @@ TMP="$(mktemp --suffix=.frag)"
 cp "$SRC" "$TMP"
 for kv in "$@"; do
 	name="${kv%%=*}"; val="${kv#*=}"
-	# const float initialisers must be float literals: turn bare integers into 1.0 etc.
+	# Whitespace-tolerant. Requiring exactly one space after 'const vec3' silently matched
+	# NOTHING for 'const vec3  uFilBg = vec3(...)' (two spaces), so an override could be quietly
+	# ignored and the render would look identical -- which is how the background knob first
+	# appeared to do nothing. An override that does not apply must never be silent.
 	if [ "${val#*,}" != "$val" ]; then
 		# name=r,g,b -> a vec3 colour knob
-		sed -i -E "s/^const vec3 ${name}[[:space:]]*=[[:space:]]*vec3\([^)]*\);/const vec3 ${name} = vec3(${val});/" "$TMP"
+		sed -i -E "s/^const[[:space:]]+vec3[[:space:]]+${name}[[:space:]]*=[[:space:]]*vec3\([^)]*\);/const vec3 ${name} = vec3(${val});/" "$TMP"
 	else
 		case "$val" in *.*|*[eE]*) : ;; *) val="$val.0" ;; esac
-		sed -i -E "s/^const float ${name}[[:space:]]*=[^;]*;/const float ${name} = ${val};/" "$TMP"
+		sed -i -E "s/^const[[:space:]]+float[[:space:]]+${name}[[:space:]]*=[^;]*;/const float ${name} = ${val};/" "$TMP"
+	fi
+	if ! grep -qE "^const ${name}[[:space:]]*=" "$TMP" && ! grep -qE "^const[[:space:]]+(float|vec3)[[:space:]]+${name}[[:space:]]*=" "$TMP"; then
+		echo "preview.sh: no const knob named '${name}' in ${SRC}" >&2; exit 1
+	fi
+	if ! grep -qF "${val}" "$TMP"; then
+		echo "preview.sh: override '${name}=${val}' did NOT apply" >&2; exit 1
 	fi
 done
 

@@ -43,6 +43,12 @@ So the hue is now driven by the **density field** and by a noise sampled in **wa
 colour therefore inherits the warp exactly as the density does — the placement is the point,
 not the maths. If you want more colour spread across the clouds, raise `uFilHueScale`.
 
+**On the backdrop.** `uFilBg` sets what is visible through the gas, so the shader is not stuck
+against pure black when run on its own. It is added as `col += uFilBg * T`, so it is correctly
+dimmed by the gas. **In the compositor it must stay black** — the layer contract says a layer
+returns only its own emission, and the star field is composited behind it; a non-black value
+there would count the background twice.
+
 **On translucency.** `uFilOpacity` multiplies extinction only (emission keeps its own scale),
 so the gas can glow without occluding. But be aware of the arithmetic: at the defaults,
 `dt = uFilView/uFilSteps = 25/16 = 1.56` and `uFilDensity 3.6` makes the per-step optical
@@ -163,8 +169,9 @@ trade off against each other:
 | `uFilSteps` | **16** | march steps: quality vs speed |
 | `uFilBright` | 0.167 | exposure |
 | `uFilHue` / `uFilSat` | 0.695 / 0.39 | palette: base hue and saturation |
-| `uFilHueRange` | 0.18 | palette **width**: 0 = one hue, 1 = the whole wheel |
+| `uFilHueRange` | 0.18 | palette **width**: 0 = one hue, 1 = the whole wheel, **>1 wraps** |
 | `uFilHueScale` | 0.90 | how finely the hue follows the clouds |
+| `uFilBg` | (0,0,0) | **standalone backdrop**: what shows *through* the gas |
 | `uFilOpacity` | 1.00 | how much light the gas blocks (lower = translucent) |
 | `uFilWarp` | 0.78 | **domain warp**: bends the strands. 0 = raw straight sheets |
 | `uFilWarpScale` | 0.60 | warp frequency — higher = busier bending |
@@ -177,6 +184,12 @@ per-step optical depth exceeds 1 — and the march hits its early-out almost imm
 how 16 steps can carry this much structure: the gas saturates, so the ray never runs long.
 `uFilScale 0.22` with `uFilFreq 1.43` keeps the octave frequencies rising modestly, and the
 warp supplies the kinking that stops the strands reading as straight bands.
+
+**`Tools/preview.sh` fails loudly now.** It silently ignored an override whose knob it could
+not match: the pattern required exactly one space after `const vec3`, but
+`const vec3  uFilBg = ...` has two, so `uFilBg` appeared to do nothing (the renders were
+byte-similar and the knob looked broken). It is whitespace-tolerant and aborts with an error
+if a knob is missing or the value did not land.
 
 ## Running it
 

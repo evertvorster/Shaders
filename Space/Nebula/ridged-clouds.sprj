@@ -65,6 +65,9 @@
 				<variable type="float" name="uFilHueScale">
 					<row><value>0.90</value></row>
 				</variable>
+				<variable type="float3" name="uFilBg">
+					<row><value>0.000</value><value>0.000</value><value>0.000</value></row>
+				</variable>
 				<variable type="float" name="uFilOpacity">
 					<row><value>1.00</value></row>
 				</variable>

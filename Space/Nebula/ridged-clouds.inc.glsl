@@ -151,6 +151,13 @@ vec3 nebulaSky(vec3 camPos, vec3 dir, float pxPerDir, float dither, out vec3 tra
 		dist += dt;
 	}
 
+	// Standalone backdrop: whatever shows through the gas. The layer contract says a layer
+	// returns only its OWN emission, and in the compositor that is right -- the star field is
+	// composited behind it and this must stay black there, or the background gets counted
+	// twice. It exists so the shader is not stuck against pure black when run on its own in
+	// glslviewer / SHADERed / the lab. Default black.
+	col += uFilBg * T;
+
 	transmittance = T;
 	return col;
 }

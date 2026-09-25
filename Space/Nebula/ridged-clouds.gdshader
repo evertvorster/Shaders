@@ -20,8 +20,9 @@ uniform float uFilSteps : hint_range(16, 192, 1) = 16.0;  // march steps: qualit
 uniform float uFilBright : hint_range(0, 4, 0.01) = 0.167;  // exposure
 uniform float uFilHue : hint_range(0, 1, 0.01) = 0.695;  // base hue
 uniform float uFilSat : hint_range(0, 1, 0.01) = 0.39;  // saturation
-uniform float uFilHueRange : hint_range(0, 1, 0.01) = 0.18;  // palette WIDTH: 0 = one hue, 1 = the whole wheel
+uniform float uFilHueRange : hint_range(0, 2, 0.01) = 0.18;  // palette WIDTH: 0 = one hue, 1 = the wheel, >1 = wraps
 uniform float uFilHueScale : hint_range(0.1, 6, 0.01) = 0.90;  // how finely the hue follows the clouds
+uniform vec3 uFilBg : source_color = vec3(0.000, 0.000, 0.000);  // what shows THROUGH the gas (standalone backdrop)
 uniform float uFilOpacity : hint_range(0, 1, 0.01) = 1.00;  // how much light the gas blocks (lower = translucent)
 uniform float uFilWarp : hint_range(0, 2, 0.01) = 0.78;  // domain warp: bends the strands (0 = straight)
 uniform float uFilWarpScale : hint_range(0.02, 0.6, 0.001) = 0.60;  // warp frequency: higher = busier bending
@@ -287,6 +288,13 @@ vec3 nebulaSky(vec3 camPos, vec3 dir, float pxPerDir, float dither, out vec3 tra
 		}
 		dist += dt;
 	}
+
+	// Standalone backdrop: whatever shows through the gas. The layer contract says a layer
+	// returns only its OWN emission, and in the compositor that is right -- the star field is
+	// composited behind it and this must stay black there, or the background gets counted
+	// twice. It exists so the shader is not stuck against pure black when run on its own in
+	// glslviewer / SHADERed / the lab. Default black.
+	col += uFilBg * T;
 
 	transmittance = T;
 	return col;

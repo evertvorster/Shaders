@@ -31,8 +31,9 @@ const float uFilSteps   = 16.0;  // [16, 192]   march steps: quality vs speed
 const float uFilBright  = 0.167;  // [0, 4]      exposure
 const float uFilHue     = 0.695;  // [0, 1]      base hue
 const float uFilSat     = 0.39;  // [0, 1]      saturation
-const float uFilHueRange = 0.18; // [0, 1]      palette WIDTH: 0 = one hue, 1 = the whole wheel
+const float uFilHueRange = 0.18; // [0, 2]      palette WIDTH: 0 = one hue, 1 = the wheel, >1 = wraps
 const float uFilHueScale = 0.90; // [0.1, 6]    how finely the hue follows the clouds
+const vec3  uFilBg = vec3(0.000, 0.000, 0.000);  // what shows THROUGH the gas (standalone backdrop)
 const float uFilOpacity = 1.00;  // [0, 1]      how much light the gas blocks (lower = translucent)
 const float uFilWarp    = 0.78;  // [0, 2]      domain warp: bends the strands (0 = straight)
 const float uFilWarpScale = 0.60; // [0.02, 0.6] warp frequency: higher = busier bending
