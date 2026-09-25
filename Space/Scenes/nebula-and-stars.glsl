@@ -16,6 +16,7 @@ uniform vec3 uCamPos;
 // The knob values live in the .sprj, not here: GLSL uniforms cannot have initialisers,
 // which is why SHADERed shows them as variables you can edit (right-click the pass ->
 // Variables, then pin them with +).
+uniform float uStars;
 uniform float uFilScale;
 uniform float uFilFreq;
 uniform float uFilVoid;
@@ -32,7 +33,6 @@ uniform vec3 uFilBg;
 uniform float uFilOpacity;
 uniform float uFilWarp;
 uniform float uFilWarpScale;
-uniform float uStars;
 uniform float uStvCell;
 uniform float uStvDensity;
 uniform float uStvView;
@@ -172,6 +172,7 @@ mat3 lookAt(vec3 fwd, vec3 up) {
 
 
 #endif  // LIB_RAYMARCH_GLSL
+
 
 #define FILAMENT_OCTAVES 6    // ridge octaves (cost driver)
 #define FIL_MAX_STEPS   192   // hard cap on the march loop
@@ -445,6 +446,7 @@ mat3 lookAt(vec3 fwd, vec3 up) {
 
 
 #endif  // LIB_RAYMARCH_GLSL
+
 
 #define STV_MAX_STEPS 640   // hard cap on the march
 

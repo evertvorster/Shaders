@@ -35,6 +35,26 @@ const float SUN_POWER     = 200.0;
 
 #include "lib/hash.glsl"
 #include "lib/raymarch.glsl"
+// ===== KNOBS ================================================================
+// Declared HERE, in the layer, so anything that includes this layer inherits them.
+// The builders collect these blocks and emit them as uniforms per host; a scene
+// therefore needs no copy of them and cannot fall out of step.
+const float uNebDensity    = 0.60;  // [0.1, 20]  overall gas density
+const float uNebHaze       = 0.40;  // [0, 2]     soft haze filling the volume
+const float uNebStructure  = 1.50;  // [0, 3]     filamentary cloud structure
+const vec3 uNebRayleigh     = vec3(0.175, 0.440, 1.000);  // Rayleigh scattering colour (the gas's glow)
+const vec3 uNebAbsorbColour = vec3(0.232, 0.606, 1.000);  // extinction colour (what the gas absorbs)
+const vec3 uNebSunColour    = vec3(1.000, 1.000, 1.000);  // the sun's colour
+const float uNebBright     = 1.00;  // [0, 8]     exposure
+const float uNebSunAngle   = 2.00;  // [0, 6.28]  where the sun sits around us
+const float uNebSunHeight  = 0.50;  // [-1, 1]    sun elevation
+const float uNebNoiseScale = 0.44;  // [0.05, 4]  size of the cloud detail
+const float uNebVoid       = 0.12;  // [0.02, 0.45] void threshold: higher = sparser clouds
+const float uNebView       = 26.0;  // [10, 400]  how far a view ray marches (visible depth)
+const float uNebSteps      = 24.0;  // [6, 64]    march steps: quality vs speed
+const float uNebDither     = 1.00;  // [0, 1]     per-pixel jitter of the first step (0 = off)
+// ===== END KNOBS ============================================================
+
 
 //-------------------------------- Shape --------------------------------
 

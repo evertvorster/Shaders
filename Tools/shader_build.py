@@ -69,6 +69,30 @@ VEC3_RE = re.compile(
     r"^const\s+vec3\s+(\w+)\s*=\s*vec3\(([^)]*)\)\s*;\s*(?://\s*)?(.*)$")
 
 
+# A layer declares its knobs in its OWN .inc.glsl, inside this block, so anything that
+# includes the layer inherits them automatically -- which is the point: a scene no longer has
+# to copy them, and cannot silently fall out of step when one changes.
+KNOB_BLOCK_RE = re.compile(
+    r"^[ \t]*// ===== KNOBS[^\n]*\n(.*?)^[ \t]*// ===== END KNOBS[^\n]*\n", re.M | re.S)
+
+
+def collect_knob_lines(text):
+    """Every knob declaration inside a KNOBS block, in file order."""
+    lines = []
+    for m in KNOB_BLOCK_RE.finditer(text):
+        lines.extend(m.group(1).split("\n"))
+    return lines
+
+
+def strip_knob_blocks(text):
+    """Remove KNOBS blocks.
+
+    A host gets the knobs as UNIFORM declarations (so SHADERed can edit them and Godot can
+    hint them); leaving the `const` versions in place as well would redeclare every knob.
+    """
+    return KNOB_BLOCK_RE.sub("", text)
+
+
 def resolve_includes(text):
     """Inline `#include "path"` lines, paths relative to the repo root."""
     def repl(m):
@@ -108,9 +132,15 @@ def parse_knobs(lines):
 
 
 def read_source(path):
-    """Split a canonical source into (physics, shared, variables)."""
+    """Split a canonical source into (physics, shared, variables).
+
+    Knobs come from two places: the source's own VARIABLES section (scene-level knobs) and
+    any KNOBS block in an included layer. Duplicates are an error rather than a silent
+    shadowing.
+    """
     with open(path) as f:
-        lines = resolve_includes(f.read()).split("\n")
+        resolved = resolve_includes(f.read())
+    lines = resolved.split("\n")
 
     def find(prefix):
         for i, ln in enumerate(lines):
@@ -123,9 +153,16 @@ def read_source(path):
     i_shared = find("// ===== SHARED MATHS")
     i_host = find("// ===== HOST")
 
-    physics = "\n".join(lines[i_phys:i_vars]).rstrip()
-    shared = "\n".join(lines[i_shared:i_host]).rstrip()
-    variables = parse_knobs(lines[i_vars:i_shared])
+    physics = strip_knob_blocks("\n".join(lines[i_phys:i_vars])).rstrip()
+    shared = strip_knob_blocks("\n".join(lines[i_shared:i_host])).rstrip()
+
+    variables = parse_knobs(lines[i_vars:i_shared]) + parse_knobs(collect_knob_lines(resolved))
+    seen = set()
+    for v in variables:
+        if v["name"] in seen:
+            raise SystemExit("knob %s is declared twice in %s (a scene and a layer both?)"
+                             % (v["name"], path))
+        seen.add(v["name"])
     if not variables:
         raise SystemExit("no variables parsed in %s -- check the annotations" % path)
     return physics, shared, variables

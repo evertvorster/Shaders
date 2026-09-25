@@ -154,6 +154,7 @@ mat3 lookAt(vec3 fwd, vec3 up) {
 
 #endif  // LIB_RAYMARCH_GLSL
 
+
 #define STV_MAX_STEPS 640   // hard cap on the march
 
 // Star colour: hotter (bluer) for the bright ones, cooler for the dim, which is the usual

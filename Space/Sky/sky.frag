@@ -48,6 +48,9 @@ uniform vec2  u_mouse;
 // The compositor has no physics of its own; the layers bring theirs via their includes.
 
 // ===== VARIABLES ================================================================
+// The LAYER knobs are no longer declared here -- each layer's .inc.glsl owns them
+// (its KNOBS block) and everything that includes the layer inherits them, so this
+// file only declares what is genuinely its own.
 // Fades, then every knob the included layers need (their names are namespaced per
 // layer -- uStar*, uNeb* -- because a GLSL translation unit is flat).
 
@@ -56,50 +59,11 @@ const float uFadeStars  = 1.00;  // [0, 1]   weight of the local starfield layer
 const float uFadeMilkyway = 1.00;  // [0, 1]   weight of the Milky Way layer
 
 // starfield knobs (Space/Starfield)
-const float uStarSize         = 0.54;  // [0.1, 5]   scales EVERY star
-const float uStarFieldSize    = 0.46;  // [0.05, 3]  scales the smallest (faintest) stars
-const float uStarDensity      = 57.0;  // [5, 400] field density: star count scales with its SQUARE
-const float uStarCluster      = 1.00;  // [0, 1]   clumping; 0 = perfectly uniform field
-const float uStarClusterScale = 0.50;  // [0.5, 20] clump size: lower = bigger clumps
-const float uStarBright       = 1.31;  // [0, 4]   exposure
-const float uStarGlow         = 1.03;  // [0, 3]   glare around the brightest stars
-const float uStarCount        = 0.36;  // [0.05, 1] cell occupancy
 
 // nebula knobs (Space/Nebula/gyroid-clouds)
-const float uNebDensity    = 0.60;  // [0.1, 20]  overall gas density
-const float uNebHaze       = 0.40;  // [0, 2]     soft haze filling the volume
-const float uNebStructure  = 1.50;  // [0, 3]     filamentary cloud structure
-const vec3 uNebRayleigh     = vec3(0.175, 0.440, 1.000);  // Rayleigh scattering colour (the gas's glow)
-const vec3 uNebAbsorbColour = vec3(0.232, 0.606, 1.000);  // extinction colour (what the gas absorbs)
-const vec3 uNebSunColour    = vec3(1.000, 1.000, 1.000);  // the sun's colour
-const float uNebBright     = 1.00;  // [0, 8]     exposure
-const float uNebSunAngle   = 2.00;  // [0, 6.28]  where the sun sits around us
-const float uNebSunHeight  = 0.50;  // [-1, 1]    sun elevation
-const float uNebNoiseScale = 0.44;  // [0.05, 4]  size of the cloud detail
-const float uNebVoid       = 0.12;  // [0.02, 0.45] void threshold: higher = sparser clouds
-const float uNebView       = 26.0;  // [10, 400]  how far a view ray marches (visible depth)
-const float uNebSteps      = 24.0;  // [6, 64]    march steps: quality vs speed
-const float uNebDither     = 1.00;  // [0, 1]     per-pixel jitter of the first step (0 = off)
 
 // Milky Way knobs (Space/MilkyWay)
-const float uMwPitch      = 0.00;  // [0, 3.14]   tilt of the galactic plane
-const float uMwYaw        = 0.00;  // [0, 6.28]   yaw of the plane
-const float uMwCoreAngle  = 0.03;  // [0, 6.28]   where the core sits along the band
-const float uMwDistance   = 0.72;  // [0.25, 4]   scale every element: further / nearer the centre
-const float uMwWidth      = 0.05;  // [0.02, 0.6] bright band width
-const float uMwFalloff    = 2.00;  // [0.5, 8]    cross-band falloff: 2 = gaussian, higher = flatter then sharper
-const float uMwSpan       = 114.0; // [15, 180]   half-width of the arc, in degrees
-const float uMwTaper      = 0.45;  // [0, 1]      how much thinner the bands get at the sides
-const float uMwNoiseScale = 17.0;  // [0.5, 60]   size of the bright-band turbulence
-const float uMwDustNoiseScale = 6.9; // [0.5, 60] size of the DUST turbulence (its own)
-const float uMwBright     = 0.45;  // [0, 4]      bright band brightness
-const float uMwDust       = 5.75;  // [0, 12]     dark band extinction
-const float uMwDustWidth  = 0.12;  // [0.01, 0.4] dark band outer width
-const float uMwDustFull   = 0.00;  // [0, 0.4]     width at full strength, then falls off to the outer width
-const float uMwDustOffset = 0.01;  // [-0.15, 0.15] dark band offset from the midplane
-const float uMwDustTint   = 0.00;  // [0, 2]      how brown the dark band is (0 = black)
-const float uMwCore       = 1.22;  // [0, 4]      core brightness
-const float uMwCoreSize   = 0.08;  // [0.05, 0.8] core angular size
+
 
 // ===== SHARED MATHS =============================================================
 // The layers themselves. Each include brings its constants, maths and contract; the

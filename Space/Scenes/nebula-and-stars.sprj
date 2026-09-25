@@ -29,6 +29,9 @@
 				<variable type="float4x4" name="uView" system="View" />
 				<variable type="float4x4" name="uProj" system="Projection" />
 				<variable type="float3" name="uCamPos" system="CameraPosition3" />
+				<variable type="float" name="uStars">
+					<row><value>1.0</value></row>
+				</variable>
 				<variable type="float" name="uFilScale">
 					<row><value>0.22</value></row>
 				</variable>
@@ -76,9 +79,6 @@
 				</variable>
 				<variable type="float" name="uFilWarpScale">
 					<row><value>0.60</value></row>
-				</variable>
-				<variable type="float" name="uStars">
-					<row><value>1.0</value></row>
 				</variable>
 				<variable type="float" name="uStvCell">
 					<row><value>3.0</value></row>

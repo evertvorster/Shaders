@@ -31,22 +31,16 @@ python3 Tools/build_scenes.py          # or python3 Tools/build_all.py for every
 Tools/preview.sh Space/Scenes/nebula-and-stars.frag /tmp/scene.png
 ```
 
-## The drift guard (important)
+## Knobs are inherited, never copied
 
-The builders read knob declarations out of the `.frag`'s VARIABLES section, so a scene has to
-**repeat** every knob its layers declare — and that is a drift trap: add or rename a knob in a
-layer and the scene silently stops exposing it, while the `.sprj` and the Godot hints keep the
-stale name and the value goes nowhere.
+A scene declares only what is **genuinely its own** (here, `uStars`). Every layer knob comes
+from that layer's `.inc.glsl` KNOBS block, which the builders collect from the inlined
+includes — so adding a knob to a layer makes it appear in every scene automatically, and there
+is nothing to keep in step.
 
-So `build_scenes.py` fails the build if the scene is missing a knob that a layer it includes
-declares:
+This replaced a drift guard that failed the build when a scene was missing a layer knob. The
+guard worked, but the duplication it was guarding was the actual problem. (A scene and a layer
+declaring the SAME knob name is now a hard error instead: that would be silent shadowing.)
 
-```
-FAILED: scene does not declare every layer knob:
-    missing uFilWarp (from ridged-clouds.frag)
-```
-
-The right long-term fix is to move knob declarations into the layer `.inc` files and teach the
-builders to collect them from inlined includes; until then this guard makes the duplication
-loud instead of silent. The Godot lab takes the same approach from the other end: it derives
-its sliders from the shader's own `hint_range` annotations rather than a hand-written list.
+The Godot lab takes the same approach from the other end: it derives its sliders from the
+shader's own `hint_range` annotations rather than a hand-written list.

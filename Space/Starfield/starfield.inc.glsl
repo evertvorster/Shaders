@@ -30,6 +30,20 @@ const float W3         = 0.55;
 
 #include "lib/hash.glsl"
 #include "lib/noise.glsl"
+// ===== KNOBS ================================================================
+// Declared HERE, in the layer, so anything that includes this layer inherits them.
+// The builders collect these blocks and emit them as uniforms per host; a scene
+// therefore needs no copy of them and cannot fall out of step.
+const float uStarSize         = 0.54;  // [0.1, 5]   scales EVERY star
+const float uStarFieldSize    = 0.46;  // [0.05, 3]  scales the smallest (faintest) stars
+const float uStarDensity      = 57.0;  // [5, 400] field density: star count scales with its SQUARE
+const float uStarCluster      = 1.00;  // [0, 1] clumping; 0 = perfectly uniform field
+const float uStarClusterScale = 0.50;  // [0.5, 20] clump size: lower = bigger clumps
+const float uStarBright       = 1.31;  // [0, 4] exposure
+const float uStarGlow         = 1.03;  // [0, 3] glare around the brightest stars; 0 = none
+const float uStarCount        = 0.36;  // [0.05, 1] cell occupancy: more stars, same spacing
+// ===== END KNOBS ============================================================
+
 
 // Star colour by TEMPERATURE, cool -> hot: ~2500 K (deep orange) through sun-like to
 // ~30000 K (blue). Real stars are overwhelmingly cool dwarfs, but the ones that stand

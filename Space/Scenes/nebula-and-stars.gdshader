@@ -6,6 +6,7 @@
 shader_type spatial;
 render_mode cull_front, unshaded, depth_draw_never, depth_test_disabled;
 
+uniform float uStars : hint_range(0, 1, 0.01) = 1.0;  // fade the star volume; 0 branches it off entirely, so it is free
 uniform float uFilScale : hint_range(0.05, 1.5, 0.01) = 0.22;  // field scale: higher = finer strands
 uniform float uFilFreq : hint_range(1.1, 2.6, 0.01) = 1.43;  // frequency growth per octave
 uniform float uFilVoid : hint_range(0.05, 0.85, 0.001) = 0.65;  // void threshold: higher = sparser strands
@@ -22,7 +23,6 @@ uniform vec3 uFilBg : source_color = vec3(0.000, 0.000, 0.000);  // what shows T
 uniform float uFilOpacity : hint_range(0, 1, 0.01) = 1.00;  // how much light the gas blocks (lower = translucent)
 uniform float uFilWarp : hint_range(0, 2, 0.01) = 0.78;  // domain warp: bends the strands (0 = straight)
 uniform float uFilWarpScale : hint_range(0.02, 0.6, 0.001) = 0.60;  // warp frequency: higher = busier bending
-uniform float uStars : hint_range(0, 1, 0.01) = 1.0;  // fade the star volume; 0 branches it off entirely, so it is free
 uniform float uStvCell : hint_range(1, 50, 0.1) = 3.0;  // cell size in world units: bigger = fewer, further apart
 uniform float uStvDensity : hint_range(0, 1, 0.01) = 0.03;  // fraction of cells that hold a star
 uniform float uStvView : hint_range(10, 500, 1) = 100.0;  // how far the local volume reaches
@@ -166,6 +166,7 @@ mat3 lookAt(vec3 fwd, vec3 up) {
 
 
 #endif  // LIB_RAYMARCH_GLSL
+
 
 #define FILAMENT_OCTAVES 6    // ridge octaves (cost driver)
 #define FIL_MAX_STEPS   192   // hard cap on the march loop
@@ -439,6 +440,7 @@ mat3 lookAt(vec3 fwd, vec3 up) {
 
 
 #endif  // LIB_RAYMARCH_GLSL
+
 
 #define STV_MAX_STEPS 640   // hard cap on the march
 

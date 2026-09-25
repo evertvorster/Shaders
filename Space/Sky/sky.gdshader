@@ -15,8 +15,8 @@ uniform float uStarDensity : hint_range(5, 400, 1) = 57.0;  // field density: st
 uniform float uStarCluster : hint_range(0, 1, 0.01) = 1.00;  // clumping; 0 = perfectly uniform field
 uniform float uStarClusterScale : hint_range(0.5, 20, 0.1) = 0.50;  // clump size: lower = bigger clumps
 uniform float uStarBright : hint_range(0, 4, 0.01) = 1.31;  // exposure
-uniform float uStarGlow : hint_range(0, 3, 0.01) = 1.03;  // glare around the brightest stars
-uniform float uStarCount : hint_range(0.05, 1, 0.001) = 0.36;  // cell occupancy
+uniform float uStarGlow : hint_range(0, 3, 0.01) = 1.03;  // glare around the brightest stars; 0 = none
+uniform float uStarCount : hint_range(0.05, 1, 0.001) = 0.36;  // cell occupancy: more stars, same spacing
 uniform float uNebDensity : hint_range(0.1, 20, 0.1) = 0.60;  // overall gas density
 uniform float uNebHaze : hint_range(0, 2, 0.01) = 0.40;  // soft haze filling the volume
 uniform float uNebStructure : hint_range(0, 3, 0.01) = 1.50;  // filamentary cloud structure
@@ -147,6 +147,7 @@ float fbm3(vec3 p) {
 
 
 #endif  // LIB_NOISE_GLSL
+
 
 // Star colour by TEMPERATURE, cool -> hot: ~2500 K (deep orange) through sun-like to
 // ~30000 K (blue). Real stars are overwhelmingly cool dwarfs, but the ones that stand
@@ -365,6 +366,7 @@ mat3 lookAt(vec3 fwd, vec3 up) {
 
 
 #endif  // LIB_RAYMARCH_GLSL
+
 
 //-------------------------------- Shape --------------------------------
 
@@ -650,6 +652,7 @@ mat3 lookAt(vec3 fwd, vec3 up) {
 
 
 #endif  // LIB_RAYMARCH_GLSL
+
 
 vec3 mwPole() {
 	float cp = cos(uMwPitch);

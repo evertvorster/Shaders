@@ -144,6 +144,7 @@ mat3 lookAt(vec3 fwd, vec3 up) {
 
 #endif  // LIB_RAYMARCH_GLSL
 
+
 //-------------------------------- Shape --------------------------------
 
 // A gyroid is a triply-periodic minimal surface; |...| turns it into a shell, and the

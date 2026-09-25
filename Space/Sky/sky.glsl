@@ -154,6 +154,7 @@ float fbm3(vec3 p) {
 
 #endif  // LIB_NOISE_GLSL
 
+
 // Star colour by TEMPERATURE, cool -> hot: ~2500 K (deep orange) through sun-like to
 // ~30000 K (blue). Real stars are overwhelmingly cool dwarfs, but the ones that stand
 // out are hot and blue-white, so the sampled temperature is biased up by magnitude.
@@ -371,6 +372,7 @@ mat3 lookAt(vec3 fwd, vec3 up) {
 
 
 #endif  // LIB_RAYMARCH_GLSL
+
 
 //-------------------------------- Shape --------------------------------
 
@@ -656,6 +658,7 @@ mat3 lookAt(vec3 fwd, vec3 up) {
 
 
 #endif  // LIB_RAYMARCH_GLSL
+
 
 vec3 mwPole() {
 	float cp = cos(uMwPitch);

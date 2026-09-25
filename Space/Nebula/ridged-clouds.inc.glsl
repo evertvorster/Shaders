@@ -21,6 +21,28 @@
 #include "lib/hash.glsl"
 #include "lib/noise.glsl"
 #include "lib/raymarch.glsl"
+// ===== KNOBS ================================================================
+// Declared HERE, in the layer, so anything that includes this layer inherits them.
+// The builders collect these blocks and emit them as uniforms per host; a scene
+// therefore needs no copy of them and cannot fall out of step.
+const float uFilScale   = 0.22;  // [0.05, 1.5] field scale: higher = finer strands
+const float uFilFreq    = 1.43;  // [1.1, 2.6]  frequency growth per octave
+const float uFilVoid    = 0.65;  // [0.05, 0.85] void threshold: higher = sparser strands
+const float uFilCore    = 0.00;  // [0, 2]      extra brightness in the cores
+const float uFilDensity = 3.60;  // [0.05, 6]   optical depth
+const float uFilView    = 25.0;  // [4, 80]     how deep the ray marches
+const float uFilSteps   = 16.0;  // [16, 192]   march steps: quality vs speed
+const float uFilBright  = 0.167;  // [0, 4]      exposure
+const float uFilHue     = 0.695;  // [0, 1]      base hue
+const float uFilSat     = 0.39;  // [0, 1]      saturation
+const float uFilHueRange = 0.18; // [0, 2]      palette WIDTH: 0 = one hue, 1 = the wheel, >1 = wraps
+const float uFilHueScale = 0.90; // [0.1, 6]    how finely the hue follows the clouds
+const vec3  uFilBg = vec3(0.000, 0.000, 0.000);  // what shows THROUGH the gas (standalone backdrop)
+const float uFilOpacity = 1.00;  // [0, 1]      how much light the gas blocks (lower = translucent)
+const float uFilWarp    = 0.78;  // [0, 2]      domain warp: bends the strands (0 = straight)
+const float uFilWarpScale = 0.60; // [0.02, 0.6] warp frequency: higher = busier bending
+// ===== END KNOBS ============================================================
+
 
 #define FILAMENT_OCTAVES 6    // ridge octaves (cost driver)
 #define FIL_MAX_STEPS   192   // hard cap on the march loop

@@ -162,6 +162,7 @@ mat3 lookAt(vec3 fwd, vec3 up) {
 
 #endif  // LIB_RAYMARCH_GLSL
 
+
 vec3 mwPole() {
 	float cp = cos(uMwPitch);
 	return normalize(vec3(sin(uMwPitch) * cos(uMwYaw), cp, sin(uMwPitch) * sin(uMwYaw)));

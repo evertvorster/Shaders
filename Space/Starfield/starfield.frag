@@ -58,17 +58,14 @@ uniform vec2  u_mouse;
 // (below), so the sky compositor can include the identical code. Nothing to see here.
 
 // ===== VARIABLES ================================================================
+// The knobs live in the layer's .inc.glsl (see its KNOBS block) so that scenes
+// inherit them instead of copying them. Add or change them THERE.
+
+// ===== VARIABLES ================================================================
 // The knobs. Each is annotated `[min, max]` for the generated hosts. In this file
 // (the glslviewer build) they are `const` because glslviewer cannot set custom
 // uniforms; the builder promotes them to real uniforms for SHADERed and Godot.
-const float uStarSize         = 0.54;  // [0.1, 5]   scales EVERY star
-const float uStarFieldSize    = 0.46;  // [0.05, 3]  scales the smallest (faintest) stars
-const float uStarDensity      = 57.0;  // [5, 400] field density: star count scales with its SQUARE
-const float uStarCluster      = 1.00;  // [0, 1] clumping; 0 = perfectly uniform field
-const float uStarClusterScale = 0.50;  // [0.5, 20] clump size: lower = bigger clumps
-const float uStarBright       = 1.31;  // [0, 4] exposure
-const float uStarGlow         = 1.03;  // [0, 3] glare around the brightest stars; 0 = none
-const float uStarCount        = 0.36;  // [0.05, 1] cell occupancy: more stars, same spacing
+
 
 // ===== SHARED MATHS ===========================================================
 #include "Space/Starfield/starfield.inc.glsl"

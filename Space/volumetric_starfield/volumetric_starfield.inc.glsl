@@ -27,6 +27,19 @@
 #include "lib/hash.glsl"
 #include "lib/noise.glsl"
 #include "lib/raymarch.glsl"
+// ===== KNOBS ================================================================
+// Declared HERE, in the layer, so anything that includes this layer inherits them.
+// The builders collect these blocks and emit them as uniforms per host; a scene
+// therefore needs no copy of them and cannot fall out of step.
+const float uStvCell    = 3.0;      // [1, 50]    cell size in world units: bigger = fewer, further apart
+const float uStvDensity = 0.03;     // [0, 1]     fraction of cells that hold a star
+const float uStvView    = 100.0;    // [10, 500]  how far the local volume reaches
+const float uStvAng     = 0.0026;   // [0.0002, 0.006] star angular radius (direction units)
+const float uStvBright  = 3.08;      // [0, 6]     exposure
+const float uStvFalloff = 0.0028;   // [0.0001, 0.05] inverse-square scale: bigger = stars dim faster with distance
+const float uStvSeed    = 0.0;      // [0, 100]   lattice seed
+// ===== END KNOBS ============================================================
+
 
 #define STV_MAX_STEPS 640   // hard cap on the march
 

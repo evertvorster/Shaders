@@ -162,6 +162,7 @@ mat3 lookAt(vec3 fwd, vec3 up) {
 
 #endif  // LIB_RAYMARCH_GLSL
 
+
 // The disk, in world units. The galactic centre is the world origin.
 #define MW_HZ        1.2   // disk scale height
 #define MW_HR        8.0   // disk scale length

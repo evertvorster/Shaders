@@ -24,6 +24,9 @@ uniform vec2  u_mouse;
 // because the builders split the source on it.
 
 // ===== VARIABLES ================================================================
+// The LAYER knobs are no longer declared here -- each layer's .inc.glsl owns them
+// (its KNOBS block) and everything that includes the layer inherits them, so this
+// file only declares what is genuinely its own.
 // These knobs are REPEATED from Space/Nebula/ridged-clouds.frag and
 // Space/volumetric_starfield/volumetric_starfield.frag, because the builders read knob
 // declarations out of the .frag's VARIABLES section. Repeating them is exactly how they
@@ -31,34 +34,12 @@ uniform vec2  u_mouse;
 // knob both layer sources declare, and FAILS THE BUILD if one has been added or renamed
 // in a layer and not carried here.
 // ===== VARIABLES ================================================================
-const float uFilScale   = 0.22;  // [0.05, 1.5] field scale: higher = finer strands
-const float uFilFreq    = 1.43;  // [1.1, 2.6]  frequency growth per octave
-const float uFilVoid    = 0.65;  // [0.05, 0.85] void threshold: higher = sparser strands
-const float uFilCore    = 0.00;  // [0, 2]      extra brightness in the cores
-const float uFilDensity = 3.60;  // [0.05, 6]   optical depth
-const float uFilView    = 25.0;  // [4, 80]     how deep the ray marches
-const float uFilSteps   = 16.0;  // [16, 192]   march steps: quality vs speed
-const float uFilBright  = 0.167;  // [0, 4]      exposure
-const float uFilHue     = 0.695;  // [0, 1]      base hue
-const float uFilSat     = 0.39;  // [0, 1]      saturation
-const float uFilHueRange = 0.18; // [0, 2]      palette WIDTH: 0 = one hue, 1 = the wheel, >1 = wraps
-const float uFilHueScale = 0.90; // [0.1, 6]    how finely the hue follows the clouds
-const vec3  uFilBg = vec3(0.000, 0.000, 0.000);  // what shows THROUGH the gas (standalone backdrop)
-const float uFilOpacity = 1.00;  // [0, 1]      how much light the gas blocks (lower = translucent)
-const float uFilWarp    = 0.78;  // [0, 2]      domain warp: bends the strands (0 = straight)
-const float uFilWarpScale = 0.60; // [0.02, 0.6] warp frequency: higher = busier bending
 
 
 // scene knob, not a layer knob
 const float uStars    = 1.0;   // [0, 1] fade the star volume; 0 branches it off entirely, so it is free
 // ===== VARIABLES ================================================================
-const float uStvCell    = 3.0;      // [1, 50]    cell size in world units: bigger = fewer, further apart
-const float uStvDensity = 0.03;     // [0, 1]     fraction of cells that hold a star
-const float uStvView    = 100.0;    // [10, 500]  how far the local volume reaches
-const float uStvAng     = 0.0026;   // [0.0002, 0.006] star angular radius (direction units)
-const float uStvBright  = 3.08;      // [0, 6]     exposure
-const float uStvFalloff = 0.0028;   // [0.0001, 0.05] inverse-square scale: bigger = stars dim faster with distance
-const float uStvSeed    = 0.0;      // [0, 100]   lattice seed
+
 
 
 // ===== SHARED MATHS =============================================================

@@ -25,6 +25,23 @@
 #include "lib/noise.glsl"
 // lookAt lives in raymarch; the standalone host uses it.
 #include "lib/raymarch.glsl"
+// ===== KNOBS ================================================================
+// Declared HERE, in the layer, so anything that includes this layer inherits them.
+// The builders collect these blocks and emit them as uniforms per host; a scene
+// therefore needs no copy of them and cannot fall out of step.
+const float uGalPitch       = 0.00;  // [0, 3.14]   tilt of the galactic plane (0 = world XZ)
+const float uGalYaw         = 0.00;  // [0, 6.28]   yaw of the plane
+const float uGalEmission    = 0.25;  // [0, 4]      how brightly the gas glows
+const float uGalDust        = 2.50;  // [0, 6]      dust extinction over the path
+const float uGalTurb        = 0.80;  // [0, 1]      turbulence on the column
+const float uGalNoiseScale  = 0.50;  // [0.05, 2]   size of the turbulent structure
+const float uGalArmCount    = 2.00;  // [1, 6]      number of spiral arms
+const float uGalArmTwist    = 4.00;  // [1, 10]     how tightly the arms wind
+const float uGalArmStrength = 0.60;  // [0, 1]      arm contrast
+const float uGalSoftness    = 0.08;  // [0.01, 0.5] bounds the grazing-ray column
+const float uGalBright      = 1.00;  // [0, 4]      exposure
+// ===== END KNOBS ============================================================
+
 
 // The disk, in world units. The galactic centre is the world origin.
 #define MW_HZ        1.2   // disk scale height

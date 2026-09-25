@@ -163,6 +163,7 @@ mat3 lookAt(vec3 fwd, vec3 up) {
 
 #endif  // LIB_RAYMARCH_GLSL
 
+
 #define FILAMENT_OCTAVES 6    // ridge octaves (cost driver)
 #define FIL_MAX_STEPS   192   // hard cap on the march loop
 
