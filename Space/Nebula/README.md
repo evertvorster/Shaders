@@ -109,14 +109,25 @@ What bought that, in order of effect:
 2. **`localStars` removed** — a 27-cell scan per march step.
 3. **Shadow steps** `max(3, steps*0.25)` → `max(2, steps*0.15)`.
 4. **The shadow samples a cheaper field** (`SHADOW_OCTAVES 2` vs `GYROID_OCTAVES 4`): a
-   shadow only needs the cloud *shape*, not the filigree. Analytic saving ~35%.
+   shadow only needs the cloud *shape*, not the filigree. Measured with the bench below,
+   0.98 → **0.71 ms/frame** at 24 steps (~28%).
 
-**The `--bench N` number is only meaningful on a real display.** Under `xvfb-run` it is
-dominated by a fixed ~15 ms of presentation overhead (Mesa reports "No DRI3 support …
-required for presentation"): sweeping `uNebSteps` from 8 to 48 changes the frame time by
-only 9% (15.4 → 16.7 ms), so the bench is measuring the presentation path, not the shader.
-Use the on-screen FPS counter in the lab instead. `--param name=value` (and
-`name=r,g,b` for colours) is available for headless sweeps regardless.
+**`--bench N` draws WITHOUT swapping buffers** (`RenderingServer.force_draw(false)`).
+Presenting costs ~15 ms/frame under `xvfb-run` (Mesa: "No DRI3 support … required for
+presentation") and swamped the shader completely — an earlier version of this bench
+reported ~60 fps no matter what the shader did, which cost a round of wrong conclusions.
+
+Drawing without a swap measures the render, so it responds to load:
+`uNebSteps` 8 / 24 / 48 → 3175 / 1539 / 587 fps at 1152×648. But it is **not
+GPU-synchronised**, so treat it as a **relative** instrument — good for "is this change
+faster", not for absolute fps. The in-game FPS counter is the absolute truth (Evert: 240
+fps at his resolution, where this bench was reporting 60).
+
+`--param name=value` (and `name=r,g,b` for colour knobs) makes headless sweeps possible:
+
+```sh
+godot-mono --path . res://nebula_lab.tscn -- --bench 300 --param uNebSteps=24
+```
 
 ## Trap: forward motion makes the banding flicker
 
