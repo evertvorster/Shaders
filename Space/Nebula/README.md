@@ -31,6 +31,18 @@ under every other colour, and the nebula cycled through everything. Depth is now
 `uFilView` and every term is scaled into `uFilHueRange`, so the strands stay a family of
 related hues. Measured hue spread over the biased pixels: **7 deg at 0.05, 38 deg at 1.0**.
 
+**On where the hue comes from (and straight colour bands).** The hue used to be driven partly
+by the **light lattice** — `mod(p + 2.5, 5.0)`. That is a *grid*, and the creases of a grid are
+**straight**. Warping them with the field's displacement does not help: that displaces by ~0.4
+world units against a 5-unit cell (~8%), which leaves the creases straight. At a tight
+`uFilHueRange` this is invisible; widen the range and you get straight colour bands running
+through an otherwise curly cloud.
+
+So the hue is now driven by the **density field** and by a noise sampled in **warped space**
+(`uFilHueScale` sets how finely), and the lattice is left to modulate brightness only. The
+colour therefore inherits the warp exactly as the density does — the placement is the point,
+not the maths. If you want more colour spread across the clouds, raise `uFilHueScale`.
+
 **On translucency.** `uFilOpacity` multiplies extinction only (emission keeps its own scale),
 so the gas can glow without occluding. But be aware of the arithmetic: at the defaults,
 `dt = uFilView/uFilSteps = 25/16 = 1.56` and `uFilDensity 3.6` makes the per-step optical
@@ -152,6 +164,7 @@ trade off against each other:
 | `uFilBright` | 0.167 | exposure |
 | `uFilHue` / `uFilSat` | 0.695 / 0.39 | palette: base hue and saturation |
 | `uFilHueRange` | 0.18 | palette **width**: 0 = one hue, 1 = the whole wheel |
+| `uFilHueScale` | 0.90 | how finely the hue follows the clouds |
 | `uFilOpacity` | 1.00 | how much light the gas blocks (lower = translucent) |
 | `uFilWarp` | 0.78 | **domain warp**: bends the strands. 0 = raw straight sheets |
 | `uFilWarpScale` | 0.60 | warp frequency — higher = busier bending |

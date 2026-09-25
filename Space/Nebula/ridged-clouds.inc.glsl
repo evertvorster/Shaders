@@ -63,14 +63,17 @@ vec3 filHSV(vec3 c) {
 // uFilHueRange around uFilHue, so the strands are a family of related hues rather than a
 // trip around the whole wheel. uFilHueRange 1.0 restores the old cycle-everything look.
 //
-// Note the depth term is normalised by uFilView: it used to be 0.05 * dist, which over a
-// 25-unit march rotated the hue more than twice on its own, so depth alone buried the
-// chosen palette under every other colour.
-vec3 filamentColour(float f, float dist, float lightDist) {
-	float depth = clamp(dist / max(uFilView, 1.0), 0.0, 1.0);
-	float lit   = clamp(lightDist / 4.3, 0.0, 1.0);
-	float v     = 0.55 * f + 0.10 * depth + 0.35 * lit;   // 0..1, our palette coordinate
-	float hue   = fract(uFilHue + uFilHueRange * (v - 0.5));
+// Where the hue varies from is the important part. It comes from the DENSITY FIELD and from a
+// noise sampled in WARPED space (q), so the colour follows the gas. It deliberately does NOT
+// use the light lattice: that is a grid, and the creases of a grid are STRAIGHT -- warping
+// them by the field's displacement is useless, because that displaces by only ~0.4 world
+// units against a 5-unit cell (~8%), which leaves the creases straight. At a tight hue range
+// nobody notices; widen the range and you get straight colour bands running through an
+// otherwise curly cloud. So colour is driven by warped noise, and the lattice is left to
+// modulate brightness only.
+vec3 filamentColour(float f, vec3 q, float depth) {
+	float v = 0.60 * f + 0.10 * depth + 0.30 * vnoise(q * uFilHueScale);
+	float hue = fract(uFilHue + uFilHueRange * (v - 0.5));
 	return filHSV(vec3(hue, uFilSat, 1.0));
 }
 
@@ -93,6 +96,12 @@ vec3 filWarped(vec3 p) {
 	return q;
 }
 
+// The warp displacement, or zero when the warp is off.
+vec3 filDisplace(vec3 p) {
+	if (uFilWarp > 0.0) return filWarp(p);
+	return vec3(0.0);
+}
+
 vec3 nebulaSky(vec3 camPos, vec3 dir, float pxPerDir, float dither, out vec3 transmittance) {
 	vec3 d = normalize(dir);
 
@@ -107,18 +116,27 @@ vec3 nebulaSky(vec3 camPos, vec3 dir, float pxPerDir, float dither, out vec3 tra
 		if (i >= steps) break;
 		vec3 p = camPos + dist * d;
 
-		float f = filamentField(filWarped(p));
+		// The warp is computed ONCE and used for BOTH the density field and the light lattice.
+		// Everything the colour reads has to inherit it, or the parts that do not stay straight
+		// and show through as straight colour bands. The lattice in particular was evaluated in
+		// raw world space -- `mod(p + 2.5, 5.0)` -- and its axis-aligned cell boundaries are
+		// literally straight lines: invisible at a tight hue range, plainly visible once the
+		// range is widened.
+		vec3 wv = filDisplace(p);
+		float f = filamentField(p * uFilScale + wv);
 
 		// Voids are the default; strands are where the field is high.
 		float dens = smoothstep(uFilVoid, uFilVoid + 0.25, f);
 		dens += uFilCore * smoothstep(0.80, 1.00, f);   // extra-bright cores
 
 		if (dens > 0.0) {
-			// Repeated light sources on a lattice, so strands glow differently as you fly.
-			vec3 lp = mod(p + 2.5, 5.0) - 2.5;
+			// Brightness still gets the local-light character, but note this is ONLY brightness:
+			// the creases of this lattice are straight, which is why the hue no longer reads from it.
+			vec3 lp = mod(p + wv + 2.5, 5.0) - 2.5;
 			float ldist = max(length(lp), 1e-3);
+			float depth = clamp(dist / max(uFilView, 1.0), 0.0, 1.0);
 
-			vec3 e = filamentColour(f, dist, ldist) / (1.0 + ldist * ldist * 0.35);
+			vec3 e = filamentColour(f, p * uFilScale + wv, depth) / (1.0 + ldist * ldist * 0.35);
 			// Extinction is separate from emission so the gas can GLOW without OCCLUDING.
 			// uFilOpacity 1.0 is physically balanced; lower it for a translucent nebula
 			// you can see through. (Careful: less extinction means the ray no longer hits
