@@ -30,22 +30,22 @@
 				<variable type="float4x4" name="uProj" system="Projection" />
 				<variable type="float3" name="uCamPos" system="CameraPosition3" />
 				<variable type="float" name="uStvCell">
-					<row><value>2.0</value></row>
+					<row><value>3.0</value></row>
 				</variable>
 				<variable type="float" name="uStvDensity">
-					<row><value>0.50</value></row>
+					<row><value>0.03</value></row>
 				</variable>
 				<variable type="float" name="uStvView">
 					<row><value>100.0</value></row>
 				</variable>
 				<variable type="float" name="uStvAng">
-					<row><value>0.0016</value></row>
+					<row><value>0.0026</value></row>
 				</variable>
 				<variable type="float" name="uStvBright">
-					<row><value>2.0</value></row>
+					<row><value>3.08</value></row>
 				</variable>
 				<variable type="float" name="uStvFalloff">
-					<row><value>0.0020</value></row>
+					<row><value>0.0028</value></row>
 				</variable>
 				<variable type="float" name="uStvSeed">
 					<row><value>0.0</value></row>

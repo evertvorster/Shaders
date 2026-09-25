@@ -18,12 +18,12 @@ uniform vec2  u_mouse;
 // The lattice, the star model and the contract live in volumetric_starfield.inc.glsl (below).
 
 // ===== VARIABLES ================================================================
-const float uStvCell    = 2.0;      // [1, 50]    cell size in world units: bigger = fewer, further apart
-const float uStvDensity = 0.50;     // [0, 1]     fraction of cells that hold a star
+const float uStvCell    = 3.0;      // [1, 50]    cell size in world units: bigger = fewer, further apart
+const float uStvDensity = 0.03;     // [0, 1]     fraction of cells that hold a star
 const float uStvView    = 100.0;    // [10, 500]  how far the local volume reaches
-const float uStvAng     = 0.0016;   // [0.0002, 0.006] star angular radius (direction units)
-const float uStvBright  = 2.0;      // [0, 6]     exposure
-const float uStvFalloff = 0.0020;   // [0.0001, 0.05] inverse-square scale: bigger = stars dim faster with distance
+const float uStvAng     = 0.0026;   // [0.0002, 0.006] star angular radius (direction units)
+const float uStvBright  = 3.08;      // [0, 6]     exposure
+const float uStvFalloff = 0.0028;   // [0.0001, 0.05] inverse-square scale: bigger = stars dim faster with distance
 const float uStvSeed    = 0.0;      // [0, 100]   lattice seed
 
 // ===== SHARED MATHS =============================================================
