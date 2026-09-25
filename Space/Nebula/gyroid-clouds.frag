@@ -88,8 +88,11 @@ void main() {
 	vec3 dir = normalize(view * cameraRay(gl_FragCoord.xy, fov));
 	float pxPerDir = 2.0 * tan(radians(fov * 0.5)) / u_resolution.y;
 
+	// Dither the first step per pixel: without it, flying forward slides the sampling
+	// lattice through the gas and the banding flickers.
+	float dither = ign(gl_FragCoord.xy);
 	vec3 transmittance;
-	vec3 col = nebulaSky(camPos, dir, pxPerDir, transmittance);
+	vec3 col = nebulaSky(camPos, dir, pxPerDir, dither, transmittance);
 
 	col = aces(col);
 	gl_FragColor = vec4(pow(col, vec3(0.4545)), 1.0);

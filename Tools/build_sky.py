@@ -55,8 +55,9 @@ void main() {{
 	vec3 dir = normalize(transpose(mat3(uView)) * viewRay);
 	float pxPerDir = 2.0 / (uProj[1][1] * iResolution.y);
 
+	float dither = ign(gl_FragCoord.xy);
 	vec3 transmittance;
-	vec3 col = skyColour(uCamPos, dir, pxPerDir, transmittance);
+	vec3 col = skyColour(uCamPos, dir, pxPerDir, dither, transmittance);
 
 	col = aces(col);
 	outColor = vec4(pow(col, vec3(0.4545)), 1.0);
@@ -100,8 +101,9 @@ void vertex() {{
 
 void fragment() {{
 	vec3 dir = normalize(v_dir);
+	float dither = ign(FRAGCOORD.xy);
 	vec3 transmittance;
-	vec3 col = skyColour(uCamPos, dir, uPxPerDir, transmittance);
+	vec3 col = skyColour(uCamPos, dir, uPxPerDir, dither, transmittance);
 	col = aces(col);
 	ALBEDO = pow(col, vec3(0.4545));
 }}

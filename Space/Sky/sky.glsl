@@ -536,10 +536,13 @@ vec3 mainRay(vec3 org, vec3 dir, vec3 sunDirection, out vec3 totalTransmittance,
 }
 
 // ===== THE CONTRACT =============================================================
-vec3 nebulaSky(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
+// `dither` offsets the first step per pixel (0..1). Without it the samples sit at fixed
+// distances from the CAMERA, so flying forward slides the whole sampling lattice through the
+// gas and the banding flickers. Dithering turns that into fixed grain instead.
+vec3 nebulaSky(vec3 camPos, vec3 dir, float pxPerDir, float dither, out vec3 transmittance) {
 	vec3 d = normalize(dir);
 	vec3 sunDirection = normalize(vec3(cos(uNebSunAngle), uNebSunHeight, sin(uNebSunAngle)));
-	vec3 colour = mainRay(camPos, d, sunDirection, transmittance, 0.0);
+	vec3 colour = mainRay(camPos, d, sunDirection, transmittance, dither);
 	return colour * uNebBright;
 }
 
@@ -768,7 +771,7 @@ vec3 milkywaySky(vec3 dir, float pxPerDir, out vec3 transmittance) {
 #endif  // MILKYWAY_INC_GLSL
 
 // ===== THE FOLD =================================================================
-vec3 skyColour(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
+vec3 skyColour(vec3 camPos, vec3 dir, float pxPerDir, float dither, out vec3 transmittance) {
 	vec3 col = vec3(0.0);
 	vec3 T   = vec3(1.0);
 
@@ -777,7 +780,7 @@ vec3 skyColour(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
 	// costs nothing at all rather than evaluating an invisible layer.
 	if (uFadeNebula > 0.0) {
 		vec3 Tl;
-		vec3 e = nebulaSky(camPos, dir, pxPerDir, Tl);
+		vec3 e = nebulaSky(camPos, dir, pxPerDir, dither, Tl);
 		Tl = mix(vec3(1.0), Tl, uFadeNebula);
 		col += T * e * uFadeNebula;
 		T *= Tl;
@@ -820,8 +823,9 @@ void main() {
 	vec3 dir = normalize(transpose(mat3(uView)) * viewRay);
 	float pxPerDir = 2.0 / (uProj[1][1] * iResolution.y);
 
+	float dither = ign(gl_FragCoord.xy);
 	vec3 transmittance;
-	vec3 col = skyColour(uCamPos, dir, pxPerDir, transmittance);
+	vec3 col = skyColour(uCamPos, dir, pxPerDir, dither, transmittance);
 
 	col = aces(col);
 	outColor = vec4(pow(col, vec3(0.4545)), 1.0);

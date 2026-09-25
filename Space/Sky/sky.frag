@@ -29,7 +29,7 @@
 // so it truly disappears rather than leaving a grey veil.
 //
 // ---------------------------------------------------------------- CONTRACT
-//     vec3 skyColour(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance);
+//     vec3 skyColour(vec3 camPos, vec3 dir, float pxPerDir, float dither, out vec3 transmittance);
 //
 // Returns linear HDR emission plus the transmittance of the whole stack; tone mapping
 // belongs to the host.
@@ -107,7 +107,7 @@ const float uMwCoreSize   = 0.08;  // [0.05, 0.8] core angular size
 #include "Space/MilkyWay/milkyway.inc.glsl"
 
 // ===== THE FOLD =================================================================
-vec3 skyColour(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
+vec3 skyColour(vec3 camPos, vec3 dir, float pxPerDir, float dither, out vec3 transmittance) {
 	vec3 col = vec3(0.0);
 	vec3 T   = vec3(1.0);
 
@@ -116,7 +116,7 @@ vec3 skyColour(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
 	// costs nothing at all rather than evaluating an invisible layer.
 	if (uFadeNebula > 0.0) {
 		vec3 Tl;
-		vec3 e = nebulaSky(camPos, dir, pxPerDir, Tl);
+		vec3 e = nebulaSky(camPos, dir, pxPerDir, dither, Tl);
 		Tl = mix(vec3(1.0), Tl, uFadeNebula);
 		col += T * e * uFadeNebula;
 		T *= Tl;
@@ -176,8 +176,9 @@ void main() {
 	vec3 dir = normalize(view * cameraRay(gl_FragCoord.xy, fov));
 	float pxPerDir = 2.0 * tan(radians(fov * 0.5)) / u_resolution.y;
 
+	float dither = ign(gl_FragCoord.xy);
 	vec3 transmittance;
-	vec3 col = skyColour(camPos, dir, pxPerDir, transmittance);
+	vec3 col = skyColour(camPos, dir, pxPerDir, dither, transmittance);
 
 	col = aces(col);
 	gl_FragColor = vec4(pow(col, vec3(0.4545)), 1.0);

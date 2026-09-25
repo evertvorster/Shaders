@@ -207,10 +207,13 @@ vec3 mainRay(vec3 org, vec3 dir, vec3 sunDirection, out vec3 totalTransmittance,
 }
 
 // ===== THE CONTRACT =============================================================
-vec3 nebulaSky(vec3 camPos, vec3 dir, float pxPerDir, out vec3 transmittance) {
+// `dither` offsets the first step per pixel (0..1). Without it the samples sit at fixed
+// distances from the CAMERA, so flying forward slides the whole sampling lattice through the
+// gas and the banding flickers. Dithering turns that into fixed grain instead.
+vec3 nebulaSky(vec3 camPos, vec3 dir, float pxPerDir, float dither, out vec3 transmittance) {
 	vec3 d = normalize(dir);
 	vec3 sunDirection = normalize(vec3(cos(uNebSunAngle), uNebSunHeight, sin(uNebSunAngle)));
-	vec3 colour = mainRay(camPos, d, sunDirection, transmittance, 0.0);
+	vec3 colour = mainRay(camPos, d, sunDirection, transmittance, dither);
 	return colour * uNebBright;
 }
 
