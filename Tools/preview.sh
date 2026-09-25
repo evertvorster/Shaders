@@ -18,8 +18,13 @@ cp "$SRC" "$TMP"
 for kv in "$@"; do
 	name="${kv%%=*}"; val="${kv#*=}"
 	# const float initialisers must be float literals: turn bare integers into 1.0 etc.
-	case "$val" in *.*|*[eE]*) : ;; *) val="$val.0" ;; esac
-	sed -i -E "s/^const float ${name}[[:space:]]*=[^;]*;/const float ${name} = ${val};/" "$TMP"
+	if [ "${val#*,}" != "$val" ]; then
+		# name=r,g,b -> a vec3 colour knob
+		sed -i -E "s/^const vec3 ${name}[[:space:]]*=[[:space:]]*vec3\([^)]*\);/const vec3 ${name} = vec3(${val});/" "$TMP"
+	else
+		case "$val" in *.*|*[eE]*) : ;; *) val="$val.0" ;; esac
+		sed -i -E "s/^const float ${name}[[:space:]]*=[^;]*;/const float ${name} = ${val};/" "$TMP"
+	fi
 done
 
 FIFO="$(mktemp -u /tmp/glfifo.XXXXXX)"; mkfifo "$FIFO"

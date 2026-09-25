@@ -66,7 +66,16 @@ col += starfieldSky(dir, ppd, T);
 | `uNebSteps` | 24 | march steps: quality vs speed. **The main cost lever** |
 | `uNebDither` | 1.0 | per-pixel jitter of the first step; 0 = off |
 | `uNebBright` | 1.0 | exposure |
+| `uNebGlowColour` | (1,1,1) | **the palette.** Multiplies the scattering — the gas's own glow |
+| `uNebAbsorbColour` | (1,1,1) | multiplies the extinction — what the gas absorbs |
+| `uNebSunColour` | (1,1,1) | the sun's colour |
 | `uNebSunAngle` / `uNebSunHeight` | 2.0 / 0.5 | where the sun sits |
+
+The three colour knobs are `vec3`, so each host gets a real colour control: Godot shows a
+colour picker (`: source_color`), SHADERed a float3, and `Tools/preview.sh` takes
+`uNebGlowColour=1.0,0.3,0.12`. They **scale** the physical coefficients, so `(1,1,1)` is
+exactly the original atmosphere-derived look, and suppressing a channel shifts the whole
+nebula's colour. To recolour a nebula you now set art, not physics.
 
 There is deliberately **no in-volume star field**. The gas is lit by the sun only; stars
 are the compositor's business (`Space/Starfield`), and a 27-cell star scan per march step
@@ -99,9 +108,15 @@ What bought that, in order of effect:
    a large-scale "region" term. Removed, and `GYROID_OCTAVES` went 6 → **4**.
 2. **`localStars` removed** — a 27-cell scan per march step.
 3. **Shadow steps** `max(3, steps*0.25)` → `max(2, steps*0.15)`.
+4. **The shadow samples a cheaper field** (`SHADOW_OCTAVES 2` vs `GYROID_OCTAVES 4`): a
+   shadow only needs the cloud *shape*, not the filigree. Analytic saving ~35%.
 
-Measured with `--bench 200`: 62 fps / 16.1 ms at 1152×648 headless (the 240 fps figure is
-Evert's own resolution).
+**The `--bench N` number is only meaningful on a real display.** Under `xvfb-run` it is
+dominated by a fixed ~15 ms of presentation overhead (Mesa reports "No DRI3 support …
+required for presentation"): sweeping `uNebSteps` from 8 to 48 changes the frame time by
+only 9% (15.4 → 16.7 ms), so the bench is measuring the presentation path, not the shader.
+Use the on-screen FPS counter in the lab instead. `--param name=value` (and
+`name=r,g,b` for colours) is available for headless sweeps regardless.
 
 ## Trap: forward motion makes the banding flicker
 

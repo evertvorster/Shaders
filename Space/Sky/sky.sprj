@@ -71,6 +71,15 @@
 				<variable type="float" name="uNebStructure">
 					<row><value>1.50</value></row>
 				</variable>
+				<variable type="float3" name="uNebGlowColour">
+					<row><value>1.00</value><value>1.00</value><value>1.00</value></row>
+				</variable>
+				<variable type="float3" name="uNebAbsorbColour">
+					<row><value>1.00</value><value>1.00</value><value>1.00</value></row>
+				</variable>
+				<variable type="float3" name="uNebSunColour">
+					<row><value>1.00</value><value>1.00</value><value>1.00</value></row>
+				</variable>
 				<variable type="float" name="uNebBright">
 					<row><value>1.00</value></row>
 				</variable>

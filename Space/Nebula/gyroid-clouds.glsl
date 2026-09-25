@@ -20,6 +20,9 @@ uniform vec3 uCamPos;
 uniform float uNebDensity;
 uniform float uNebHaze;
 uniform float uNebStructure;
+uniform vec3 uNebGlowColour;
+uniform vec3 uNebAbsorbColour;
+uniform vec3 uNebSunColour;
 uniform float uNebBright;
 uniform float uNebSunAngle;
 uniform float uNebSunHeight;
@@ -46,13 +49,16 @@ uniform float uNebDither;
 // The gas, the sun and the box. Constants, not sliders.
 const vec3  BETA_RAYLEIGH = 100.0 * vec3(0.05802, 0.14558, 0.331);  // Earth-ish air, tweaked
 const vec3  BETA_OZONE    = vec3(0.650, 1.881, 0.085);
-const vec3  SIGMA_S = 2.0 * BETA_RAYLEIGH;              // scattering
-const vec3  SIGMA_A = 4.0 * (BETA_RAYLEIGH + 3.0 * BETA_OZONE);  // absorption
-const vec3  SIGMA_E = SIGMA_A;                          // extinction
+// Scattering and extinction are now functions of the colour knobs, so the palette is
+// art rather than physics. The knobs scale the coefficients, so (1,1,1) reproduces the
+// original look exactly; suppress a channel to shift the whole nebula's colour.
+vec3 sigmaS() { return 2.0 * BETA_RAYLEIGH * uNebGlowColour; }
+vec3 sigmaE() { return 4.0 * (BETA_RAYLEIGH + 3.0 * BETA_OZONE) * uNebAbsorbColour; }
 const float LIGHT_DIST    = 18.0;   // how far the sun ray is marched (no box any more)
 const float SUN_POWER     = 200.0;
 
 #define GYROID_OCTAVES 4    // fbm octaves in the density field (cost driver: 6 -> 4)
+#define SHADOW_OCTAVES 2    // octaves for the sun ray: shapes only, no filigree
 
 // ===== SHARED MATHS =============================================================
 // Everything from here to the HOST marker is host-independent and is copied verbatim
@@ -142,10 +148,9 @@ float gyroid(vec3 p, float thickness, float bias, float frequency) {
 	             0.0, 3.0) / 3.0;
 }
 
-float gyroidFbm(vec3 p) {
-	const int   octaves = GYROID_OCTAVES;
+float gyroidFbmLod(vec3 p, int octaves) {
 	const float fbmScale = 1.95;
-	float a = PI / float(octaves);
+	float a = PI / float(GYROID_OCTAVES);
 	mat3 m3 = fbmScale * mat3(vec3(cos(a), sin(a), 0.0),
 	                          vec3(-sin(a), cos(a), 0.0),
 	                          vec3(0.0, 0.0, 1.0));
@@ -153,7 +158,8 @@ float gyroidFbm(vec3 p) {
 	float amplitude = 1.0;
 	float frequency = 1.0;
 	float res = 0.0;
-	for (int i = 0; i < octaves; i++) {
+	for (int i = 0; i < GYROID_OCTAVES; i++) {
+		if (i >= octaves) break;
 		res += amplitude * gyroid(p, 0.1, 0.0, frequency);
 		p *= m3;
 		weight += amplitude;
@@ -163,17 +169,20 @@ float gyroidFbm(vec3 p) {
 	return clamp(res / weight, 0.0, 1.0);
 }
 
-// Density of the gas at a world point. Zero outside the box. Away from the centre the
-// noise becomes a haze shell and, sharper, a structure shell -- so we sit in a cavity
-// looking out at clouds rather than inside a uniform fog.
+float gyroidFbm(vec3 p) { return gyroidFbmLod(p, GYROID_OCTAVES); }
+
 // Density of the gas at a world point. UNBOUNDED: there is no box.
 //
 // The field is a 3D noise function, defined everywhere, so we never meet a wall -- fly in
 // any direction and there is always new gas ahead. There is also NO radial shaping: the
 // voids come from the noise rather than from a cavity, which is what makes it read as a
 // nebula you are inside rather than a shell painted on a box.
-float cloudDensity(vec3 p) {
-	float n = gyroidFbm(uNebNoiseScale * p);
+//
+// The octave count is a parameter so the SHADOW ray can sample a cheaper version of the
+// same field: shadows only need the cloud shapes, not the fine structure, and the shadow
+// ray is ~75% of the cost of this shader.
+float cloudDensityLod(vec3 p, int octaves) {
+	float n = gyroidFbmLod(uNebNoiseScale * p, octaves);
 	// Voids are the default; a cloud is where the noise is high. Both the haze and the
 	// structure ride on that mask -- otherwise a term like smoothstep(0.02,0.5,n) is ~1
 	// everywhere and the whole volume glows uniformly.
@@ -181,6 +190,9 @@ float cloudDensity(vec3 p) {
 	float density = cloud * (0.5 * uNebHaze + 0.75 * uNebStructure);
 	return uNebDensity * (1e-4 + density);
 }
+
+float cloudDensity(vec3 p) { return cloudDensityLod(p, GYROID_OCTAVES); }
+float cloudDensityShadow(vec3 p) { return cloudDensityLod(p, SHADOW_OCTAVES); }
 
 //-------------------------------- Lighting --------------------------------
 
@@ -194,7 +206,7 @@ vec3 multipleOctaves(float extinction, float mu, float stepL) {
 	float c = 1.0;  // phase attenuation
 	for (int i = 0; i < octaves; i++) {
 		float phase = mix(hgPhase(-0.1 * c, mu), hgPhase(0.3 * c, mu), 0.7);
-		luminance += b * phase * exp(-stepL * extinction * SIGMA_E * a);
+		luminance += b * phase * exp(-stepL * extinction * sigmaE() * a);
 		a *= 0.3;
 		b *= 0.5;
 		c *= 0.5;
@@ -214,10 +226,10 @@ vec3 lightRay(vec3 p, float mu, vec3 sunDirection) {
 	float stepL = lightRayDistance / float(lsteps);
 	float lightRayDensity = 0.0;
 	for (int j = 0; j < lsteps; j++) {
-		lightRayDensity += cloudDensity(p + sunDirection * float(j) * stepL);
+		lightRayDensity += cloudDensityShadow(p + sunDirection * float(j) * stepL);
 	}
 	vec3 beersLaw = multipleOctaves(lightRayDensity, mu, stepL);
-	return mix(beersLaw * 2.0 * (1.0 - exp(-stepL * lightRayDensity * 2.0 * SIGMA_E)),
+	return mix(beersLaw * 2.0 * (1.0 - exp(-stepL * lightRayDensity * 2.0 * sigmaE())),
 	           beersLaw, 0.5 + 0.5 * mu);
 }
 
@@ -240,13 +252,13 @@ vec3 mainRay(vec3 org, vec3 dir, vec3 sunDirection, out vec3 totalTransmittance,
 
 	float mu = dot(dir, sunDirection);
 	float phaseFunction = mix(hgPhase(-0.3, mu), hgPhase(0.3, mu), 0.7);
-	vec3 sunLight = vec3(SUN_POWER);
+	vec3 sunLight = vec3(SUN_POWER) * uNebSunColour;
 
 	for (int i = 0; i < steps; i++) {
 		float density = cloudDensity(p);
 		if (density > 0.0) {
-			vec3 sampleSigmaS = SIGMA_S * density;
-			vec3 sampleSigmaE = SIGMA_E * density;
+			vec3 sampleSigmaS = sigmaS() * density;
+			vec3 sampleSigmaE = sigmaE() * density;
 
 			// Lit only by the sun. There is deliberately NO in-volume star field here: the
 			// stars are the compositor's business (Space/Starfield), and a 27-cell star

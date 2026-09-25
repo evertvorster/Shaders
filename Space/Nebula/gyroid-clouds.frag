@@ -51,6 +51,9 @@ uniform vec2  u_mouse;
 const float uNebDensity    = 0.60;  // [0.1, 20]  overall gas density
 const float uNebHaze       = 0.40;  // [0, 2]     soft haze filling the volume
 const float uNebStructure  = 1.50;  // [0, 3]     filamentary cloud structure
+const vec3 uNebGlowColour   = vec3(1.00, 1.00, 1.00);  // the gas's own glow (scales scattering)
+const vec3 uNebAbsorbColour = vec3(1.00, 1.00, 1.00);  // what the gas absorbs (extinction tint)
+const vec3 uNebSunColour    = vec3(1.00, 1.00, 1.00);  // the sun's colour
 const float uNebBright     = 1.00;  // [0, 8]     exposure
 const float uNebSunAngle   = 2.00;  // [0, 6.28]  where the sun sits around us
 const float uNebSunHeight  = 0.50;  // [-1, 1]    sun elevation
