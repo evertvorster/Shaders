@@ -63,7 +63,7 @@
 					<row><value>0.36</value></row>
 				</variable>
 				<variable type="float" name="uNebDensity">
-					<row><value>1.50</value></row>
+					<row><value>0.60</value></row>
 				</variable>
 				<variable type="float" name="uNebHaze">
 					<row><value>0.40</value></row>
@@ -86,8 +86,14 @@
 				<variable type="float" name="uNebNoiseScale">
 					<row><value>1.00</value></row>
 				</variable>
+				<variable type="float" name="uNebVoid">
+					<row><value>0.55</value></row>
+				</variable>
+				<variable type="float" name="uNebView">
+					<row><value>45.0</value></row>
+				</variable>
 				<variable type="float" name="uNebSteps">
-					<row><value>16.0</value></row>
+					<row><value>24.0</value></row>
 				</variable>
 				<variable type="float" name="uMwPitch">
 					<row><value>0.00</value></row>

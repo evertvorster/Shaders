@@ -48,7 +48,7 @@ uniform vec2  u_mouse;
 // ===== VARIABLES ================================================================
 // The knobs. Each annotated `[min, max]`; the builder promotes them to uniforms in
 // the generated hosts. They are `const` here because glslviewer cannot set uniforms.
-const float uNebDensity    = 1.50;  // [0.1, 20]  overall gas density
+const float uNebDensity    = 0.60;  // [0.1, 20]  overall gas density
 const float uNebHaze       = 0.40;  // [0, 2]     soft haze filling the volume
 const float uNebStructure  = 1.50;  // [0, 3]     filamentary cloud structure
 const float uNebBright     = 1.00;  // [0, 8]     exposure
@@ -56,7 +56,9 @@ const float uNebSunAngle   = 2.00;  // [0, 6.28]  where the sun sits around us
 const float uNebSunHeight  = 0.50;  // [-1, 1]    sun elevation
 const float uNebLocalStars = 1.00;  // [0, 1]     stars embedded in the gas, lighting it
 const float uNebNoiseScale = 1.00;  // [0.05, 4]  size of the cloud detail
-const float uNebSteps      = 16.0;  // [6, 64]    march steps: quality vs speed
+const float uNebVoid       = 0.55;  // [0.05, 0.9] how much of the volume is void
+const float uNebView       = 45.0;  // [10, 400]  how far a view ray marches (visible depth)
+const float uNebSteps      = 24.0;  // [6, 64]    march steps: quality vs speed
 
 // ===== SHARED MATHS ===========================================================
 #include "Space/Nebula/gyroid-clouds.inc.glsl"

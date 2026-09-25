@@ -66,7 +66,7 @@ const float uStarGlow         = 1.03;  // [0, 3]   glare around the brightest st
 const float uStarCount        = 0.36;  // [0.05, 1] cell occupancy
 
 // nebula knobs (Space/Nebula/gyroid-clouds)
-const float uNebDensity    = 1.50;  // [0.1, 20]  overall gas density
+const float uNebDensity    = 0.60;  // [0.1, 20]  overall gas density
 const float uNebHaze       = 0.40;  // [0, 2]     soft haze filling the volume
 const float uNebStructure  = 1.50;  // [0, 3]     filamentary cloud structure
 const float uNebBright     = 1.00;  // [0, 8]     exposure
@@ -74,7 +74,9 @@ const float uNebSunAngle   = 2.00;  // [0, 6.28]  where the sun sits around us
 const float uNebSunHeight  = 0.50;  // [-1, 1]    sun elevation
 const float uNebLocalStars = 1.00;  // [0, 1]     stars embedded in the gas
 const float uNebNoiseScale = 1.00;  // [0.05, 4]  size of the cloud detail
-const float uNebSteps      = 16.0;  // [6, 64]    march steps: quality vs speed
+const float uNebVoid       = 0.55;  // [0.05, 0.9] how much of the volume is void
+const float uNebView       = 45.0;  // [10, 400]  how far a view ray marches (visible depth)
+const float uNebSteps      = 24.0;  // [6, 64]    march steps: quality vs speed
 
 // Milky Way knobs (Space/MilkyWay)
 const float uMwPitch      = 0.00;  // [0, 3.14]   tilt of the galactic plane

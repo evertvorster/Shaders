@@ -10,7 +10,7 @@
 shader_type spatial;
 render_mode cull_front, unshaded, depth_draw_never, depth_test_disabled;
 
-uniform float uNebDensity : hint_range(0.1, 20, 0.1) = 1.50;  // overall gas density
+uniform float uNebDensity : hint_range(0.1, 20, 0.1) = 0.60;  // overall gas density
 uniform float uNebHaze : hint_range(0, 2, 0.01) = 0.40;  // soft haze filling the volume
 uniform float uNebStructure : hint_range(0, 3, 0.01) = 1.50;  // filamentary cloud structure
 uniform float uNebBright : hint_range(0, 8, 0.01) = 1.00;  // exposure
@@ -18,7 +18,9 @@ uniform float uNebSunAngle : hint_range(0, 6.28, 0.01) = 2.00;  // where the sun
 uniform float uNebSunHeight : hint_range(-1, 1, 0.01) = 0.50;  // sun elevation
 uniform float uNebLocalStars : hint_range(0, 1, 0.01) = 1.00;  // stars embedded in the gas, lighting it
 uniform float uNebNoiseScale : hint_range(0.05, 4, 0.01) = 1.00;  // size of the cloud detail
-uniform float uNebSteps : hint_range(6, 64, 0.1) = 16.0;  // march steps: quality vs speed
+uniform float uNebVoid : hint_range(0.05, 0.9, 0.001) = 0.55;  // how much of the volume is void
+uniform float uNebView : hint_range(10, 400, 1) = 45.0;  // how far a view ray marches (visible depth)
+uniform float uNebSteps : hint_range(6, 64, 0.1) = 24.0;  // march steps: quality vs speed
 
 uniform vec3  uCamPos = vec3(0.0, 0.0, 0.0);
 uniform float uPxPerDir : hint_range(0.00005, 0.02, 0.00005) = 0.0013;
@@ -43,7 +45,7 @@ const vec3  BETA_OZONE    = vec3(0.650, 1.881, 0.085);
 const vec3  SIGMA_S = 2.0 * BETA_RAYLEIGH;              // scattering
 const vec3  SIGMA_A = 4.0 * (BETA_RAYLEIGH + 3.0 * BETA_OZONE);  // absorption
 const vec3  SIGMA_E = SIGMA_A;                          // extinction
-const float VOLUME_EXTENT = 10.0;                       // half-size of the cube
+const float LIGHT_DIST    = 18.0;   // how far the sun ray is marched (no box any more)
 const float SUN_POWER     = 200.0;
 
 #define GYROID_OCTAVES 6    // fbm octaves in the density field (cost driver)
@@ -160,17 +162,22 @@ float gyroidFbm(vec3 p) {
 // Density of the gas at a world point. Zero outside the box. Away from the centre the
 // noise becomes a haze shell and, sharper, a structure shell -- so we sit in a cavity
 // looking out at clouds rather than inside a uniform fog.
+// Density of the gas at a world point. UNBOUNDED: there is no box.
+//
+// The field is a 3D noise function, defined everywhere, so we never meet a wall -- fly in
+// any direction and there is always new gas ahead. There is also NO radial shaping: the
+// voids come from the noise rather than from a cavity, which is what makes it read as a
+// nebula you are inside rather than a shell painted on a box.
 float cloudDensity(vec3 p) {
-	if (p.x < -VOLUME_EXTENT || p.x > VOLUME_EXTENT ||
-	    p.y < -VOLUME_EXTENT || p.y > VOLUME_EXTENT ||
-	    p.z < -VOLUME_EXTENT || p.z > VOLUME_EXTENT) {
-		return 0.0;
-	}
 	float n = gyroidFbm(uNebNoiseScale * p);
-	float r = length(p);
-	float structure = smoothstep(3.0, 5.0, r) * smoothstep(0.05, 0.10, n) * uNebStructure;
-	float haze      = smoothstep(2.0, 10.0, r) * smoothstep(0.02, 0.50, n) * uNebHaze;
-	return uNebDensity * (3e-4 + 0.5 * haze + 0.75 * structure);
+	// Large-scale regions: some parts of the nebula are dense, some are nearly clear.
+	float region = gyroidFbm(p * (uNebNoiseScale * 0.18) + 5.0);
+	// Voids are the default; a cloud is where the noise is high. Both the haze and the
+	// structure ride on that mask -- otherwise a term like smoothstep(0.02,0.5,n) is ~1
+	// everywhere and the whole volume glows uniformly.
+	float cloud = smoothstep(uNebVoid, uNebVoid + 0.22, n);
+	float density = cloud * (0.5 * uNebHaze + 0.75 * uNebStructure);
+	return uNebDensity * mix(0.35, 1.0, region) * (1e-4 + density);
 }
 
 //-------------------------------- Local stars --------------------------------
@@ -232,11 +239,9 @@ vec3 multipleOctaves(float extinction, float mu, float stepL) {
 // Light reaching p from the sun, by marching a short ray toward it and applying
 // Beers-Law, blended with the powder effect for backlighting.
 vec3 lightRay(vec3 p, float mu, vec3 sunDirection) {
-	vec2 hit = intersectAABB(p, sunDirection, vec3(-VOLUME_EXTENT), vec3(VOLUME_EXTENT));
-	float lightRayDistance = VOLUME_EXTENT * 0.25;
-	if (hit.x < hit.y && hit.y > 0.0) {
-		lightRayDistance = hit.y - max(hit.x, 0.0);
-	}
+	// No bounds: the sun ray just marches a fixed distance -- far enough for the gas to
+	// occlude it, which is all the shadowing needs.
+	float lightRayDistance = LIGHT_DIST;
 	int lsteps = max(3, int(uNebSteps * 0.25));
 	float stepL = lightRayDistance / float(lsteps);
 	float lightRayDensity = 0.0;
@@ -257,22 +262,14 @@ vec3 mainRay(vec3 org, vec3 dir, vec3 sunDirection, out vec3 totalTransmittance,
 	totalTransmittance = vec3(1.0);
 	vec3 colour = vec3(0.0);
 
-	vec2 hit = intersectAABB(org, dir, vec3(-VOLUME_EXTENT), vec3(VOLUME_EXTENT));
-
-	// Start at the camera when it is inside the box, otherwise at the near face.
-	bool inside = org.x > -VOLUME_EXTENT && org.x < VOLUME_EXTENT &&
-	              org.y > -VOLUME_EXTENT && org.y < VOLUME_EXTENT &&
-	              org.z > -VOLUME_EXTENT && org.z < VOLUME_EXTENT;
-	float distToStart = inside ? 0.0 : hit.x;
-	float distToEnd   = hit.y;
-	if (!(distToEnd > distToStart) || distToEnd <= 0.0) return colour;
-
+	// UNBOUNDED -- no box and no intersection to find. The gas is a 3D noise field defined
+	// everywhere, so we always start at the camera and march a fixed visible depth: every
+	// step is new gas wherever we are. Fly forever, fresh clouds ahead.
 	int steps = int(uNebSteps);
-	float stepS = (distToEnd - distToStart) / float(steps);
-	distToStart += stepS * offset;
-
-	float dist = distToStart;
+	float stepS = uNebView / float(steps);
+	float dist  = stepS * offset;
 	vec3 p = org + dist * dir;
+
 	float mu = dot(dir, sunDirection);
 	float phaseFunction = mix(hgPhase(-0.3, mu), hgPhase(0.3, mu), 0.7);
 	vec3 sunLight = vec3(SUN_POWER);
