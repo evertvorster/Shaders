@@ -59,6 +59,12 @@
 				<variable type="float" name="uFilSat">
 					<row><value>0.37</value></row>
 				</variable>
+				<variable type="float" name="uFilHueRange">
+					<row><value>0.18</value></row>
+				</variable>
+				<variable type="float" name="uFilOpacity">
+					<row><value>1.00</value></row>
+				</variable>
 				<variable type="float" name="uFilWarp">
 					<row><value>0.78</value></row>
 				</variable>

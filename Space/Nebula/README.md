@@ -24,6 +24,28 @@ durand's *"Type 2 Supernova"* — including the slider UI from Bers' *"IcePrimit
 **All of those are CC BY-NC-SA 3.0**, which is incompatible with this repo's GPL-3.0:
 NonCommercial forbids what the GPL grants everyone, and ShareAlike conflicts with it.
 
+**On the palette.** `uFilHueRange` replaces a bug: the hue used to be
+`uFilHue + 0.30*f + 0.05*dist + 0.12*lightDist`, and `0.05 * dist` over a 25-unit march
+rotated the wheel more than twice *on its own* — so depth alone buried the chosen palette
+under every other colour, and the nebula cycled through everything. Depth is now normalised by
+`uFilView` and every term is scaled into `uFilHueRange`, so the strands stay a family of
+related hues. Measured hue spread over the biased pixels: **7 deg at 0.05, 38 deg at 1.0**.
+
+**On translucency.** `uFilOpacity` multiplies extinction only (emission keeps its own scale),
+so the gas can glow without occluding. But be aware of the arithmetic: at the defaults,
+`dt = uFilView/uFilSteps = 25/16 = 1.56` and `uFilDensity 3.6` makes the per-step optical
+depth greater than 1, so the gas is opaque after ~two samples and NO opacity value in the
+useful range makes it see-through. A translucent look needs a lower `uFilDensity` **and**
+`uFilOpacity` together — and then the early-out stops saving you, so `uFilSteps` has to rise.
+In the standalone nebula this mostly reads as washing out rather than as depth, because there
+is nothing behind the gas to see through to.
+
+**The preview camera follows the field scale.** The glslviewer HOST orbits at `3/uFilScale`
+instead of a fixed 3. At `uFilScale 0.05` the strands are ~20 units across, so a 3-unit orbit
+sat inside a single feature and rendered a flat wash — which looks exactly like a broken
+shader, and did mislead us once. Still: this look reads best in motion (the Godot lab), not
+from a still.
+
 **On straightness:** the raw field is a stack of sine *sheets*, so without help the strands read
 as straight bands. `uFilWarp` domain-warps the sample point through a low-frequency 3D value
 noise before the ridges see it, which is the standard fix for a too-regular analytic pattern.
@@ -129,6 +151,8 @@ trade off against each other:
 | `uFilSteps` | **16** | march steps: quality vs speed |
 | `uFilBright` | 0.077 | exposure |
 | `uFilHue` / `uFilSat` | 0.31 / 0.37 | palette: base hue and saturation |
+| `uFilHueRange` | 0.18 | palette **width**: 0 = one hue, 1 = the whole wheel |
+| `uFilOpacity` | 1.00 | how much light the gas blocks (lower = translucent) |
 | `uFilWarp` | 0.78 | **domain warp**: bends the strands. 0 = raw straight sheets |
 | `uFilWarpScale` | 0.60 | warp frequency — higher = busier bending |
 

@@ -20,6 +20,8 @@ uniform float uFilSteps : hint_range(16, 192, 1) = 16.0;  // march steps: qualit
 uniform float uFilBright : hint_range(0, 4, 0.01) = 0.077;  // exposure
 uniform float uFilHue : hint_range(0, 1, 0.01) = 0.31;  // base hue
 uniform float uFilSat : hint_range(0, 1, 0.01) = 0.37;  // saturation
+uniform float uFilHueRange : hint_range(0, 1, 0.01) = 0.18;  // palette WIDTH: 0 = one hue, 1 = the whole wheel
+uniform float uFilOpacity : hint_range(0, 1, 0.01) = 1.00;  // how much light the gas blocks (lower = translucent)
 uniform float uFilWarp : hint_range(0, 2, 0.01) = 0.78;  // domain warp: bends the strands (0 = straight)
 uniform float uFilWarpScale : hint_range(0.02, 0.6, 0.001) = 0.60;  // warp frequency: higher = busier bending
 
@@ -193,11 +195,18 @@ vec3 filHSV(vec3 c) {
 	return c.z * mix(vec3(1.0), clamp(p - 1.0, 0.0, 1.0), c.y);
 }
 
-// The strand colour varies with the field (hot thin ridges read differently from the bulk),
-// with how deep we are, and with the distance to a repeated lattice of light sources -- so
-// flying through shifts the palette rather than just scaling brightness.
+// The strand colour. The hue is held INSIDE A PALETTE: every variation is scaled into
+// uFilHueRange around uFilHue, so the strands are a family of related hues rather than a
+// trip around the whole wheel. uFilHueRange 1.0 restores the old cycle-everything look.
+//
+// Note the depth term is normalised by uFilView: it used to be 0.05 * dist, which over a
+// 25-unit march rotated the hue more than twice on its own, so depth alone buried the
+// chosen palette under every other colour.
 vec3 filamentColour(float f, float dist, float lightDist) {
-	float hue = fract(uFilHue + 0.30 * f + 0.05 * dist + 0.12 * lightDist);
+	float depth = clamp(dist / max(uFilView, 1.0), 0.0, 1.0);
+	float lit   = clamp(lightDist / 4.3, 0.0, 1.0);
+	float v     = 0.55 * f + 0.10 * depth + 0.35 * lit;   // 0..1, our palette coordinate
+	float hue   = fract(uFilHue + uFilHueRange * (v - 0.5));
 	return filHSV(vec3(hue, uFilSat, 1.0));
 }
 
@@ -246,7 +255,11 @@ vec3 nebulaSky(vec3 camPos, vec3 dir, float pxPerDir, float dither, out vec3 tra
 			float ldist = max(length(lp), 1e-3);
 
 			vec3 e = filamentColour(f, dist, ldist) / (1.0 + ldist * ldist * 0.35);
-			vec3 sigma = FIL_ABSORB * dens * uFilDensity;
+			// Extinction is separate from emission so the gas can GLOW without OCCLUDING.
+			// uFilOpacity 1.0 is physically balanced; lower it for a translucent nebula
+			// you can see through. (Careful: less extinction means the ray no longer hits
+			// the early-out, so a very translucent setting runs every step and costs more.)
+			vec3 sigma = FIL_ABSORB * dens * uFilDensity * uFilOpacity;
 			vec3 tr = exp(-sigma * dt);
 
 			col += T * e * dens * uFilBright * dt;

@@ -27,6 +27,8 @@ uniform float uFilSteps;
 uniform float uFilBright;
 uniform float uFilHue;
 uniform float uFilSat;
+uniform float uFilHueRange;
+uniform float uFilOpacity;
 uniform float uFilWarp;
 uniform float uFilWarpScale;
 
@@ -197,11 +199,18 @@ vec3 filHSV(vec3 c) {
 	return c.z * mix(vec3(1.0), clamp(p - 1.0, 0.0, 1.0), c.y);
 }
 
-// The strand colour varies with the field (hot thin ridges read differently from the bulk),
-// with how deep we are, and with the distance to a repeated lattice of light sources -- so
-// flying through shifts the palette rather than just scaling brightness.
+// The strand colour. The hue is held INSIDE A PALETTE: every variation is scaled into
+// uFilHueRange around uFilHue, so the strands are a family of related hues rather than a
+// trip around the whole wheel. uFilHueRange 1.0 restores the old cycle-everything look.
+//
+// Note the depth term is normalised by uFilView: it used to be 0.05 * dist, which over a
+// 25-unit march rotated the hue more than twice on its own, so depth alone buried the
+// chosen palette under every other colour.
 vec3 filamentColour(float f, float dist, float lightDist) {
-	float hue = fract(uFilHue + 0.30 * f + 0.05 * dist + 0.12 * lightDist);
+	float depth = clamp(dist / max(uFilView, 1.0), 0.0, 1.0);
+	float lit   = clamp(lightDist / 4.3, 0.0, 1.0);
+	float v     = 0.55 * f + 0.10 * depth + 0.35 * lit;   // 0..1, our palette coordinate
+	float hue   = fract(uFilHue + uFilHueRange * (v - 0.5));
 	return filHSV(vec3(hue, uFilSat, 1.0));
 }
 
@@ -250,7 +259,11 @@ vec3 nebulaSky(vec3 camPos, vec3 dir, float pxPerDir, float dither, out vec3 tra
 			float ldist = max(length(lp), 1e-3);
 
 			vec3 e = filamentColour(f, dist, ldist) / (1.0 + ldist * ldist * 0.35);
-			vec3 sigma = FIL_ABSORB * dens * uFilDensity;
+			// Extinction is separate from emission so the gas can GLOW without OCCLUDING.
+			// uFilOpacity 1.0 is physically balanced; lower it for a translucent nebula
+			// you can see through. (Careful: less extinction means the ray no longer hits
+			// the early-out, so a very translucent setting runs every step and costs more.)
+			vec3 sigma = FIL_ABSORB * dens * uFilDensity * uFilOpacity;
 			vec3 tr = exp(-sigma * dt);
 
 			col += T * e * dens * uFilBright * dt;
