@@ -15,7 +15,7 @@
 //              structure shell so the centre around us stays relatively clear.
 //   lighting : sunlight scattered once, via Henyey-Greenstein phase, plus Beers-Law
 //              transmittance accumulated along a short secondary ray to the sun.
-//              Local stars embedded in the gas light it from within (uNebLocalStars).
+//              Lit by the sun only -- the stars are the compositor's business.
 //
 // Because the ray origin is a real position, the volume has PARALLAX: move and the
 // clouds shift against the distant stars. The output is linear HDR emission; tone
@@ -54,11 +54,11 @@ const float uNebStructure  = 1.50;  // [0, 3]     filamentary cloud structure
 const float uNebBright     = 1.00;  // [0, 8]     exposure
 const float uNebSunAngle   = 2.00;  // [0, 6.28]  where the sun sits around us
 const float uNebSunHeight  = 0.50;  // [-1, 1]    sun elevation
-const float uNebLocalStars = 1.00;  // [0, 1]     stars embedded in the gas, lighting it
-const float uNebNoiseScale = 1.00;  // [0.05, 4]  size of the cloud detail
-const float uNebVoid       = 0.20;  // [0.02, 0.45] void threshold: higher = sparser clouds
-const float uNebView       = 45.0;  // [10, 400]  how far a view ray marches (visible depth)
+const float uNebNoiseScale = 0.44;  // [0.05, 4]  size of the cloud detail
+const float uNebVoid       = 0.12;  // [0.02, 0.45] void threshold: higher = sparser clouds
+const float uNebView       = 26.0;  // [10, 400]  how far a view ray marches (visible depth)
 const float uNebSteps      = 24.0;  // [6, 64]    march steps: quality vs speed
+const float uNebDither     = 1.00;  // [0, 1]     per-pixel jitter of the first step (0 = off)
 
 // ===== SHARED MATHS ===========================================================
 #include "Space/Nebula/gyroid-clouds.inc.glsl"

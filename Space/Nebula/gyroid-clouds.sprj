@@ -47,20 +47,20 @@
 				<variable type="float" name="uNebSunHeight">
 					<row><value>0.50</value></row>
 				</variable>
-				<variable type="float" name="uNebLocalStars">
-					<row><value>1.00</value></row>
-				</variable>
 				<variable type="float" name="uNebNoiseScale">
-					<row><value>1.00</value></row>
+					<row><value>0.44</value></row>
 				</variable>
 				<variable type="float" name="uNebVoid">
-					<row><value>0.20</value></row>
+					<row><value>0.12</value></row>
 				</variable>
 				<variable type="float" name="uNebView">
-					<row><value>45.0</value></row>
+					<row><value>26.0</value></row>
 				</variable>
 				<variable type="float" name="uNebSteps">
 					<row><value>24.0</value></row>
+				</variable>
+				<variable type="float" name="uNebDither">
+					<row><value>1.00</value></row>
 				</variable>
 			</variables>
 			<macros />

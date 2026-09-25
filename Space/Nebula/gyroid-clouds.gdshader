@@ -16,11 +16,11 @@ uniform float uNebStructure : hint_range(0, 3, 0.01) = 1.50;  // filamentary clo
 uniform float uNebBright : hint_range(0, 8, 0.01) = 1.00;  // exposure
 uniform float uNebSunAngle : hint_range(0, 6.28, 0.01) = 2.00;  // where the sun sits around us
 uniform float uNebSunHeight : hint_range(-1, 1, 0.01) = 0.50;  // sun elevation
-uniform float uNebLocalStars : hint_range(0, 1, 0.01) = 1.00;  // stars embedded in the gas, lighting it
-uniform float uNebNoiseScale : hint_range(0.05, 4, 0.01) = 1.00;  // size of the cloud detail
-uniform float uNebVoid : hint_range(0.02, 0.45, 0.001) = 0.20;  // void threshold: higher = sparser clouds
-uniform float uNebView : hint_range(10, 400, 1) = 45.0;  // how far a view ray marches (visible depth)
+uniform float uNebNoiseScale : hint_range(0.05, 4, 0.01) = 0.44;  // size of the cloud detail
+uniform float uNebVoid : hint_range(0.02, 0.45, 0.001) = 0.12;  // void threshold: higher = sparser clouds
+uniform float uNebView : hint_range(10, 400, 1) = 26.0;  // how far a view ray marches (visible depth)
 uniform float uNebSteps : hint_range(6, 64, 0.1) = 24.0;  // march steps: quality vs speed
+uniform float uNebDither : hint_range(0, 1, 0.01) = 1.00;  // per-pixel jitter of the first step (0 = off)
 
 uniform vec3  uCamPos = vec3(0.0, 0.0, 0.0);
 uniform float uPxPerDir : hint_range(0.00005, 0.02, 0.00005) = 0.0013;
@@ -48,7 +48,7 @@ const vec3  SIGMA_E = SIGMA_A;                          // extinction
 const float LIGHT_DIST    = 18.0;   // how far the sun ray is marched (no box any more)
 const float SUN_POWER     = 200.0;
 
-#define GYROID_OCTAVES 6    // fbm octaves in the density field (cost driver)
+#define GYROID_OCTAVES 4    // fbm octaves in the density field (cost driver: 6 -> 4)
 
 // ===== SHARED MATHS =============================================================
 // Everything from here to the HOST marker is host-independent and is copied verbatim
@@ -170,50 +170,12 @@ float gyroidFbm(vec3 p) {
 // nebula you are inside rather than a shell painted on a box.
 float cloudDensity(vec3 p) {
 	float n = gyroidFbm(uNebNoiseScale * p);
-	// Large-scale regions: some parts of the nebula are dense, some are nearly clear.
-	float region = gyroidFbm(p * (uNebNoiseScale * 0.18) + 5.0);
 	// Voids are the default; a cloud is where the noise is high. Both the haze and the
 	// structure ride on that mask -- otherwise a term like smoothstep(0.02,0.5,n) is ~1
 	// everywhere and the whole volume glows uniformly.
 	float cloud = smoothstep(uNebVoid, uNebVoid + 0.22, n);
 	float density = cloud * (0.5 * uNebHaze + 0.75 * uNebStructure);
-	return uNebDensity * mix(0.35, 1.0, region) * (1e-4 + density);
-}
-
-//-------------------------------- Local stars --------------------------------
-
-// Star colour by temperature, as a cosine palette (Inigo Quilez).
-vec3 starTint(float t) {
-	vec3 a = vec3(0.65);
-	vec3 b = 1.0 - a;
-	vec3 c = vec3(1.0);
-	vec3 d = vec3(0.15, 0.5, 0.75);
-	return pow(a + b * cos(2.0 * PI * (c * t + d)), vec3(2.2));
-}
-
-// One star per cell near p, with a tight glow. These are LOCAL stars -- inside the gas
-// volume, not on the distant dome -- so the gas can occlude them and they can light it.
-vec3 localStars(vec3 p) {
-	p *= 0.2;
-	vec3 bestRand = vec3(0.0);
-	vec3 bestCell = vec3(0.0);
-	float best = 1e10;
-	for (int x = -1; x <= 1; x++)
-	for (int y = -1; y <= 1; y++)
-	for (int z = -1; z <= 1; z++) {
-		vec3 c = floor(p) + vec3(float(x), float(y), float(z));
-		vec3 h = 2.0 * hash33(c) - 1.0;          // in [-1, 1]
-		vec3 f = c + 0.5 + 0.5 * h;
-		float dd = length(p - f);
-		if (dd < best) { best = dd; bestRand = h; bestCell = c; }
-	}
-	vec3 r1 = clamp(0.5 + 0.5 * bestRand, 0.0, 1.0);
-	vec3 r2 = clamp(0.5 + 0.5 * (2.0 * hash33(bestCell + vec3(3.12, 104.9, -9.5)) - 1.0),
-	                0.0, 1.0);
-	float glow = max(0.0, pow(0.25 / max(best, 1e-5), 2.0));
-	return vec3(0.05) * r1.z * step(0.45, r2.z)
-	     * mix(vec3(1.0), starTint(r1.y), 0.3)
-	     * smoothstep(0.5, 0.0, best) * glow;
+	return uNebDensity * (1e-4 + density);
 }
 
 //-------------------------------- Lighting --------------------------------
@@ -242,7 +204,9 @@ vec3 lightRay(vec3 p, float mu, vec3 sunDirection) {
 	// No bounds: the sun ray just marches a fixed distance -- far enough for the gas to
 	// occlude it, which is all the shadowing needs.
 	float lightRayDistance = LIGHT_DIST;
-	int lsteps = max(3, int(uNebSteps * 0.25));
+	// Fewer shadow steps than before: each one is a full density sample, and this is the
+	// inner loop of the whole shader.
+	int lsteps = max(2, int(uNebSteps * 0.15));
 	float stepL = lightRayDistance / float(lsteps);
 	float lightRayDensity = 0.0;
 	for (int j = 0; j < lsteps; j++) {
@@ -280,15 +244,10 @@ vec3 mainRay(vec3 org, vec3 dir, vec3 sunDirection, out vec3 totalTransmittance,
 			vec3 sampleSigmaS = SIGMA_S * density;
 			vec3 sampleSigmaE = SIGMA_E * density;
 
-			// Local starlight, scaled by how much gas is here (so stars brighten the
-			// clouds they sit in, not empty space).
-			vec3 ambient = vec3(0.0);
-			if (uNebLocalStars > 0.0) {
-				ambient = uNebLocalStars * localStars(p);
-				ambient *= smoothstep(1e-3, 2e-3, density);
-			}
-
-			vec3 luminance = ambient + sunLight * phaseFunction * lightRay(p, mu, sunDirection);
+			// Lit only by the sun. There is deliberately NO in-volume star field here: the
+			// stars are the compositor's business (Space/Starfield), and a 27-cell star
+			// scan per march step was the most expensive thing in this shader.
+			vec3 luminance = sunLight * phaseFunction * lightRay(p, mu, sunDirection);
 			luminance *= sampleSigmaS;
 
 			vec3 transmittance = exp(-sampleSigmaE * stepS);
@@ -315,7 +274,7 @@ vec3 mainRay(vec3 org, vec3 dir, vec3 sunDirection, out vec3 totalTransmittance,
 vec3 nebulaSky(vec3 camPos, vec3 dir, float pxPerDir, float dither, out vec3 transmittance) {
 	vec3 d = normalize(dir);
 	vec3 sunDirection = normalize(vec3(cos(uNebSunAngle), uNebSunHeight, sin(uNebSunAngle)));
-	vec3 colour = mainRay(camPos, d, sunDirection, transmittance, dither);
+	vec3 colour = mainRay(camPos, d, sunDirection, transmittance, dither * uNebDither);
 	return colour * uNebBright;
 }
 
