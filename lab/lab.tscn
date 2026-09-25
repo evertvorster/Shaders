@@ -1,0 +1,23 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Shader" path="res://starfield.gdshader" id="1_nb"]
+[ext_resource type="Script" path="res://lab.gd" id="2_lab"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_nb"]
+shader = ExtResource("1_nb")
+
+[sub_resource type="SphereMesh" id="SphereMesh_nb"]
+radius = 100.0
+height = 200.0
+radial_segments = 96
+rings = 48
+material = SubResource("ShaderMaterial_nb")
+
+[node name="SkyLab" type="Node3D"]
+script = ExtResource("2_lab")
+
+[node name="Sphere" type="MeshInstance3D" parent="."]
+mesh = SubResource("SphereMesh_nb")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+fov = 70.0

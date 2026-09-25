@@ -522,6 +522,13 @@ def build(outdir, base, source, builder, glsl_body, godot_body, bake_body=None,
         for name, text, _ in outputs:
             with open(os.path.join(outdir, name), "w") as f:
                 f.write(text)
+            # The Godot lab can only load files inside its own res://, so it needs a copy of
+            # each generated .gdshader. Writing them HERE keeps them generated outputs --
+            # a hand-copied duplicate is exactly the kind of thing that silently drifts.
+            labdir = os.path.join(ROOT, "lab")
+            if name.endswith(".gdshader") and os.path.isdir(labdir):
+                with open(os.path.join(labdir, name), "w") as f:
+                    f.write(text)
         print("wrote  : %s" % ", ".join(n for n, _, _ in outputs))
     bad = 0
     for name, _, stage in outputs:
