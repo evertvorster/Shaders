@@ -191,10 +191,23 @@ vec3 volumetricStarfieldSky(vec3 camPos, vec3 dir, float pxPerDir, float dither,
 
 		vec3 r = hash33(c + uStvSeed);
 		if (r.x > uStvDensity) continue;    // this cell holds no star
+		float mag = r.y;
 
-		// Keep the star clear of the cell walls (the inner 70%). That keeps its disc out of a
-		// neighbouring cell's ray segment, which is what makes the one-cell test safe.
-		vec3 P = (c + 0.15 + 0.70 * r.yzx) * uStvCell;
+		// The position MUST come from an independent hash. It used to reuse r.x, which is also
+		// the occupancy test, so occupancy (r.x <= density) clamped the star's z offset: at
+		// density 0.5 the z offset could only ever land in [0.15, 0.50]. Every occupied cell was
+		// therefore empty in its upper z half -- periodic empty slabs, which read as straight
+		// layers of sky with no stars. Measured offline: mean z offset 0.324, not 0.500.
+		vec3 r2 = hash33(c + uStvSeed + 13.71);
+
+		// The star must sit far enough inside its cell that the ray always visits that cell:
+		// a pixel's capture cylinder has radius (uStvAng * distance) at the far end of the
+		// volume, and a star closer to the wall than that could be within catching distance
+		// while the ray never enters the star's own cell -- so it would be missed. DERIVING the
+		// margin keeps that empty shell as thin as the geometry allows; a fixed generous margin
+		// leaves periodic empty slabs, which is the artefact we just removed.
+		float margin = clamp(uStvAng * uStvView / max(uStvCell, 1e-4), 0.02, 0.45);
+		vec3 P = (c + margin + (1.0 - 2.0 * margin) * r2) * uStvCell;
 
 		vec3 rel = P - camPos;
 		float along = dot(rel, d);
@@ -203,7 +216,6 @@ vec3 volumetricStarfieldSky(vec3 camPos, vec3 dir, float pxPerDir, float dither,
 		float dperp = length(rel - along * d);
 		float ang = dperp / along;          // angular offset from this pixel's ray
 
-		float mag = r.z;                                             // 0..1: size + luminosity
 		float rr = uStvAng * (0.95 + 0.45 * mag);                    // constant ANGULAR radius
 
 		if (ang >= rr) continue;
